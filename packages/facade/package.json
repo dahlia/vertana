@@ -1,6 +1,6 @@
 {
   "name": "@vertana/facade",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "An LLM-powered natural language translation facade library",
   "keywords": [
     "LLM",
