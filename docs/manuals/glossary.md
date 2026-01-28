@@ -18,7 +18,7 @@ Why use glossaries?
 Without glossaries, the same term might be translated differently in different
 parts of a document:
 
- -  "chunk" might become "청크" in one paragraph and "덩어리" in another
+ -  “chunk” might become “청크” in one paragraph and “덩어리” in another
  -  Product names might be inconsistently transliterated
  -  Technical terms might lose their precise meaning
 

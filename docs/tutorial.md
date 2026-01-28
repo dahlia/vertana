@@ -197,7 +197,7 @@ console.log(result.text);
 // => "React 컴포넌트는 상태 관리를 위해 훅을 사용합니다. 각 훅은 훅의 규칙을 따릅니다."
 ~~~~
 
-For terms that should remain untranslated (like "React" above), you can use the
+For terms that should remain untranslated (like “React” above), you can use the
 `keep()` or `properNoun()` helper functions instead of repeating the same value:
 
 ~~~~ typescript twoslash

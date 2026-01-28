@@ -17,15 +17,15 @@ TypeScript/JavaScript.  It goes beyond simple LLM prompting by using autonomous
 agent workflows to gather rich contextual information, ensuring high-quality
 translations that preserve meaning, tone, and formatting.
 
+[^1]: The name *Vertana* is derived from the Sanskrit word *वर्तन* (*vartana*),
+      meaning *turning*, *moving*, or *abiding*.
+
 [JSR badge]: https://jsr.io/badges/@vertana
 [JSR]: https://jsr.io/@vertana
 [npm badge]: https://img.shields.io/npm/v/@vertana/facade?logo=npm
 [npm]: https://www.npmjs.com/package/@vertana/facade
 [GitHub Actions badge]: https://github.com/dahlia/vertana/actions/workflows/main.yaml/badge.svg
 [GitHub Actions]: https://github.com/dahlia/vertana/actions/workflows/main.yaml
-
-[^1]: The name *Vertana* is derived from the Sanskrit word *वर्तन*
-      (*vartana*), meaning *turning*, *moving*, or *abiding*.
 
 
 Features

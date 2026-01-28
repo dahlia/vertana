@@ -15,8 +15,8 @@ Vertana is designed for applications where translation is part of a product or a
 workflow: documentation sites, developer tools, localization pipelines, customer
 support tooling, or internal knowledge bases.
 
-[^1]: The name *Vertana* is derived from the Sanskrit word *वर्तन*
-      (*vartana*), meaning *turning*, *moving*, or *abiding*.
+[^1]: The name *Vertana* is derived from the Sanskrit word *वर्तन* (*vartana*),
+      meaning *turning*, *moving*, or *abiding*.
 
 
 Why an agentic workflow?
