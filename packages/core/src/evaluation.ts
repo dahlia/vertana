@@ -135,7 +135,7 @@ const issueSchema = z.object({
 });
 
 const evaluationResultSchema = z.object({
-  score: z.number().min(0).max(1),
+  score: z.number(),
   issues: z.array(issueSchema),
 });
 
@@ -248,14 +248,15 @@ export async function evaluate(
       location: issue.location,
     }),
   );
+  const score = Math.max(0, Math.min(1, result.object.score));
 
   logger.debug("Evaluation result: score {score}, {issueCount} issue(s).", {
-    score: result.object.score,
+    score,
     issueCount: issues.length,
   });
 
   return {
-    score: result.object.score,
+    score,
     issues,
   };
 }
