@@ -1,8 +1,100 @@
 import { describe, it } from "./test-compat.ts";
 import assert from "node:assert/strict";
 import type { LanguageModel } from "ai";
+import { MockLanguageModelV3 } from "ai/test";
 import { evaluate } from "./evaluation.ts";
 import { getTestModel, hasTestModel } from "./testing.ts";
+
+function createMockModel(score: number): MockLanguageModelV3 {
+  return new MockLanguageModelV3({
+    doGenerate: async () => {
+      await Promise.resolve();
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({ score, issues: [] }),
+        }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: {
+            total: 1,
+            noCache: 1,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: {
+            total: 1,
+            text: 1,
+            reasoning: 0,
+          },
+        },
+        warnings: [],
+        response: { headers: {} },
+      };
+    },
+  });
+}
+
+function getScoreSchemaFromModelCall(
+  model: MockLanguageModelV3,
+): Record<string, unknown> {
+  const responseFormat = model.doGenerateCalls[0]?.responseFormat;
+  assert.ok(responseFormat != null);
+  assert.equal(responseFormat.type, "json");
+  const schema = responseFormat.schema;
+  assert.ok(schema != null);
+  assert.equal(typeof schema, "object");
+
+  const properties = (schema as { properties?: unknown }).properties;
+  assert.ok(properties != null);
+  assert.equal(typeof properties, "object");
+
+  const scoreSchema = (properties as Record<string, unknown>).score;
+  assert.ok(scoreSchema != null);
+  assert.equal(typeof scoreSchema, "object");
+  return scoreSchema as Record<string, unknown>;
+}
+
+describe("evaluate (schema compatibility and clamping)", () => {
+  it("does not include minimum/maximum in score schema", async () => {
+    const model = createMockModel(0.5);
+    await evaluate(
+      model,
+      "Hello, world!",
+      "안녕하세요, 세계!",
+      { targetLanguage: "ko" },
+    );
+
+    const scoreSchema = getScoreSchemaFromModelCall(model);
+    assert.equal(scoreSchema.type, "number");
+    assert.ok(!("minimum" in scoreSchema));
+    assert.ok(!("maximum" in scoreSchema));
+  });
+
+  it("clamps score above 1 to 1", async () => {
+    const model = createMockModel(1.2);
+    const result = await evaluate(
+      model,
+      "Hello, world!",
+      "안녕하세요, 세계!",
+      { targetLanguage: "ko" },
+    );
+
+    assert.equal(result.score, 1);
+  });
+
+  it("clamps score below 0 to 0", async () => {
+    const model = createMockModel(-0.1);
+    const result = await evaluate(
+      model,
+      "Hello, world!",
+      "안녕하세요, 세계!",
+      { targetLanguage: "ko" },
+    );
+
+    assert.equal(result.score, 0);
+  });
+});
 
 // Lazy model initialization (cached)
 let cachedModel: LanguageModel | undefined;
