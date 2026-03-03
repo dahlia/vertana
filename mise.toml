@@ -4,7 +4,13 @@ deno = "2.3"
 node = "24"
 "npm:pnpm" = "latest"
 "npm:@dotenvx/dotenvx" = "latest"
-"npm:hongdown" = "0.3.2"
+
+[tools."github:dahlia/hongdown"]
+version = "0.3.7"
+
+[tools."github:dahlia/hongdown".platforms]
+linux-x64 = "hongdown-*-x86_64-unknown-linux-musl.tar.bz2"
+linux-arm64 = "hongdown-*-aarch64-unknown-linux-musl.tar.bz2"
 
 [tasks.install]
 description = "Install all dependencies and update the lockfiles"
