@@ -208,9 +208,21 @@ found in the source text and provides them as additional context:
 vertana translate -t ko -L document.md
 ~~~~
 
-This is useful when translating documents that reference external articles
-or resources.  The fetched content helps the LLM understand the context
-of the references and translate them more accurately.
+This is useful when translating short documents that reference a small,
+trusted set of external articles or resources.  The fetched content helps
+the LLM understand the context of the references and translate them more
+accurately.
+
+> [!WARNING]
+> Use `-L` deliberately, not as a default.  When the source document
+> contains many links to large pages, the fetched material can dominate the
+> prompt and cause the translator to echo a fetched page back as the
+> translation, instead of translating the actual input.  For long documents
+> or untrusted link sets, leave `-L` off so the CLI translates the input
+> without any web context.  If you need finer-grained control (for example,
+> the passive `fetchWebPage` source so the model fetches only specific URLs
+> on demand), use the programmatic API documented in the
+> [*Web context*](./context-web.md) guide instead.
 
 See the [*Web context*](./context-web.md) guide for more details on how
 web context fetching works.

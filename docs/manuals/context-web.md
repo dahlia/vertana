@@ -49,17 +49,27 @@ This package provides three main context sources:
 :   A passive context source that fetches a single URL on demand.
     The LLM can call this tool when it needs additional context.
 
-[`fetchLinkedPages`](#fetchlinkedpages)
-:   A required context source factory that extracts all links from the
-    source text and fetches their content before translation begins.
-
 [`searchWeb`](#searchweb)
 :   A passive context source that performs a web search and returns a list
     of results (title, URL, snippet).
 
+[`fetchLinkedPages`](#fetchlinkedpages)
+:   A required context source factory that extracts links from the source
+    text and fetches their content before translation begins.
+
 `fetchWebPage` and `fetchLinkedPages` use [Mozilla's Readability] algorithm
 to extract the main article content from web pages, filtering out navigation,
 ads, and other noise.
+
+> [!TIP]
+> Prefer the *passive* sources (`fetchWebPage`, `searchWeb`) for most use
+> cases.  The translator only invokes them when it actually needs the
+> information, which keeps the prompt focused on the source text.  The
+> *required* `fetchLinkedPages` helper is convenient for short, trusted link
+> sets, but pulling many large pages into required context can cause the
+> translator to echo a fetched page back as the translation; see the
+> [warning below](#fetchlinkedpages) before using it on large or untrusted
+> documents.
 
 [Mozilla's Readability]: https://github.com/mozilla/readability
 
@@ -94,8 +104,18 @@ call the `fetch-web-page` tool with the URL to retrieve the page content.
 ------------------
 
 A factory function that creates a required context source.  It extracts
-all URLs from the source text and fetches their content before translation
-begins.
+URLs from the source text and fetches their content before translation
+begins.  By default it fetches up to ten links (configurable via
+`maxLinks`).
+
+> [!WARNING]
+> Pulling many large pages into *required* context can confuse the
+> translator: when the combined reference material is much larger than the
+> source text, and especially when it is in the target language, the model
+> may echo a fetched page back instead of translating the actual input.  For
+> large or untrusted link sets, prefer the passive
+> [`fetchWebPage`](#fetchwebpage) source so the translator only fetches what
+> it actually needs.
 
 ~~~~ typescript twoslash
 import type { LanguageModel } from "ai";
@@ -180,11 +200,37 @@ tool with a query to obtain a list of results (title, URL, snippet).
 Combining sources
 -----------------
 
-For best results, use these sources together:
+For most cases, combining the two passive sources gives the LLM enough
+flexibility to gather context only when it actually helps the translation:
 
- 1. `fetchLinkedPages` provides context from links already present in the input.
+ 1. `fetchWebPage` lets the LLM fetch a specific URL for more detail.
  2. `searchWeb` helps the LLM find relevant pages when the input has no links.
- 3. `fetchWebPage` lets the LLM fetch a specific result URL for more detail.
+
+~~~~ typescript twoslash
+import type { LanguageModel } from "ai";
+declare const model: LanguageModel;
+// ---cut-before---
+import { translate } from "@vertana/facade";
+import { fetchWebPage, searchWeb } from "@vertana/context-web";
+
+const text = `
+Read the introduction at https://example.com/intro.
+`;
+
+const result = await translate(model, "ko", text, {
+  contextSources: [
+    // The LLM may fetch a specific URL when it needs more context.
+    fetchWebPage,
+    // The LLM may run a web search when it needs more context.
+    searchWeb,
+  ],
+});
+~~~~
+
+If the source text has a small, trusted set of links you want pulled in
+up-front, you can add `fetchLinkedPages` alongside the passive sources.
+Mind the warning in the [`fetchLinkedPages`](#fetchlinkedpages) section
+above before doing so on large or untrusted documents:
 
 ~~~~ typescript twoslash
 import type { LanguageModel } from "ai";
@@ -199,11 +245,9 @@ Read the introduction at https://example.com/intro.
 
 const result = await translate(model, "ko", text, {
   contextSources: [
-    // Pre-fetch all links in the text
     fetchLinkedPages({ text, mediaType: "text/plain" }),
-    // Allow LLM to search the web and fetch additional URLs on demand
-    searchWeb,
     fetchWebPage,
+    searchWeb,
   ],
 });
 ~~~~
@@ -253,8 +297,15 @@ vertana translate -t ko -L document.md
 
 This automatically:
 
- 1. Extracts all links from the input document
- 2. Fetches and extracts content from linked pages
- 3. Provides the content as context for translation
+ 1. Extracts links from the input document.
+ 2. Fetches and extracts content from those linked pages.
+ 3. Provides the content as context for translation.
+
+This flag wires up `fetchLinkedPages`, so the same caveat applies: it is
+appropriate for documents with a short set of links you trust, but on
+inputs with many large linked pages the fetched material can dominate the
+prompt and cause the translator to echo a fetched page back as the
+translation.  Treat `-L` as an opt-in convenience for those cases, not as
+a default.
 
 See the [*CLI reference*](./cli.md) for more details.
