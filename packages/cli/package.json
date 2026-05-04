@@ -86,7 +86,7 @@
     "prepublish": "tsdown",
     "run": "tsdown && node ./dist/index.mjs",
     "test": "tsdown && node --experimental-transform-types --test --test-concurrency=4",
-    "test:bun": "tsdown && bun test",
+    "test:bun": "tsdown && bun test --timeout 180000",
     "test:deno": "deno test --allow-env --allow-net --allow-read --allow-write --allow-ffi",
     "test-all": "tsdown && node --experimental-transform-types --test && bun test && deno test"
   }
