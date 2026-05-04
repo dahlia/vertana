@@ -91,13 +91,13 @@ export function buildSystemPrompt(
   }
 
   if (options?.context != null) {
-    const fencedContext = neutralizeReferenceMaterialTags(options.context);
+    const neutralizedContext = neutralizeReferenceMaterialTags(options.context);
     parts.push(
       "The following is reference material only, provided to help you " +
         "understand context. Do not translate it, do not quote it, and do " +
         "not include any of it in your output. Translate only the " +
         "user-supplied text.\n\n" +
-        `<reference_material>\n${fencedContext}\n</reference_material>`,
+        `<reference_material>\n${neutralizedContext}\n</reference_material>`,
     );
   }
 
