@@ -184,9 +184,12 @@ export function extractTitle(translatedText: string): string | undefined {
 // Neutralize literal `<reference_material>` / `</reference_material>` tags
 // embedded in caller-supplied context so a crafted or accidentally-shaped
 // context cannot break out of the fenced block in the system prompt.
+// The regex tolerates whitespace inside the tag, mixed case, and attribute-
+// like content, since LLMs interpret tag-shaped patterns loosely and a strict
+// match would let variants such as `</reference_material >` slip through.
 function neutralizeReferenceMaterialTags(context: string): string {
   return context.replace(
-    /<(\/?)reference_material>/gi,
+    /<\s*(\/?)\s*reference_material\b[^>]*>/gi,
     "<$1reference_material_>",
   );
 }
