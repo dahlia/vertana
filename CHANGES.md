@@ -6,6 +6,16 @@ Version 0.1.2
 
 To be released.
 
+### @vertana/core
+
+ -  Hardened the system prompt against context pollution by wrapping required
+    context inside an explicit `<reference_material>` block and prepending a
+    rule instructing the model not to translate, quote, or echo any of it.
+    This significantly reduces the chance that large fetched reference pages
+    are emitted as the translation [[#7]].
+
+[#7]: https://github.com/dahlia/vertana/issues/7
+
 
 Version 0.1.1
 -------------

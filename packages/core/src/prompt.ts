@@ -91,7 +91,14 @@ export function buildSystemPrompt(
   }
 
   if (options?.context != null) {
-    parts.push(`Additional context: ${options.context}`);
+    const fencedContext = neutralizeReferenceMaterialTags(options.context);
+    parts.push(
+      "The following is reference material only, provided to help you " +
+        "understand context. Do not translate it, do not quote it, and do " +
+        "not include any of it in your output. Translate only the " +
+        "user-supplied text.\n\n" +
+        `<reference_material>\n${fencedContext}\n</reference_material>`,
+    );
   }
 
   if (options?.glossary != null && options.glossary.length > 0) {
@@ -172,4 +179,14 @@ export function extractTitle(translatedText: string): string | undefined {
   // Otherwise, take the first line as the title
   const firstLine = translatedText.split("\n")[0];
   return firstLine?.trim() || undefined;
+}
+
+// Neutralize literal `<reference_material>` / `</reference_material>` tags
+// embedded in caller-supplied context so a crafted or accidentally-shaped
+// context cannot break out of the fenced block in the system prompt.
+function neutralizeReferenceMaterialTags(context: string): string {
+  return context.replace(
+    /<(\/?)reference_material>/gi,
+    "<$1reference_material_>",
+  );
 }
