@@ -12,9 +12,10 @@ To be released.
     context inside an explicit `<reference_material>` block and prepending a
     rule instructing the model not to translate, quote, or echo any of it.
     This significantly reduces the chance that large fetched reference pages
-    are emitted as the translation [[#7]].
+    are emitted as the translation [[#7], [#10]].
 
 [#7]: https://github.com/dahlia/vertana/issues/7
+[#10]: https://github.com/dahlia/vertana/pull/1
 
 
 Version 0.1.1
