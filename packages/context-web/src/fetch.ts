@@ -455,15 +455,18 @@ async function formatContent(
 ): Promise<string> {
   const parts: string[] = [];
 
-  parts.push(`# ${content.title}`);
+  parts.push(`# ${neutralizePromptTags(content.title)}`);
   parts.push(`Source: ${url}`);
 
   if (content.byline != null) {
-    parts.push(`Author: ${content.byline}`);
+    parts.push(`Author: ${neutralizePromptTags(content.byline)}`);
   }
 
   parts.push("");
-  const body = limitText(content.content, options.maxCharsPerPage);
+  const body = limitText(
+    neutralizePromptTags(content.content),
+    options.maxCharsPerPage,
+  );
   const contextBody = options.summarize === false || options.summarize == null
     ? body
     : await summarizeContentWithFallback(
@@ -616,7 +619,11 @@ async function summarizeContent(
   signal?: AbortSignal,
 ): Promise<string> {
   logger.debug("Summarizing fetched content from: {url}.", { url });
+  const neutralizedTitle = neutralizePromptTags(content.title);
   const neutralizedBody = neutralizePromptTags(body);
+  const lengthInstruction = options.maxChars == null
+    ? ""
+    : ` The summary must be no longer than ${options.maxChars} characters.`;
 
   const result = await generateText({
     model: options.model,
@@ -624,12 +631,12 @@ async function summarizeContent(
       "You summarize web pages for use as translation reference material. " +
       "Preserve named entities, terminology, facts, and domain context. " +
       "Do not translate the material unless the page itself is translated.",
-    prompt: `Title: ${content.title}
+    prompt: `Title: ${neutralizedTitle}
 Source: ${url}
 
 ${neutralizedBody}
 
-Summarize this page for a translator. Output only the summary.`,
+Summarize this page for a translator. Output only the summary.${lengthInstruction}`,
     abortSignal: signal,
   });
 
