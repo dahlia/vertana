@@ -5,7 +5,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./store": "./src/store.ts",
-    "./in-memory": "./src/in-memory.ts"
+    "./in-memory": "./src/in-memory.ts",
+    "./lookup": "./src/lookup.ts"
   },
   "exclude": [
     "dist/",

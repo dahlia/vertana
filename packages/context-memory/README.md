@@ -16,13 +16,16 @@ Translation memory context sources for [Vertana].
 Features
 --------
 
-This package provides a pluggable translation memory store interface and an
-in-memory reference implementation.
+This package provides a pluggable translation memory store interface, an
+in-memory reference implementation, and a passive context source for looking
+up prior translations during translation.
 
  -  `TranslationMemoryStore`: A storage interface for adding and searching
     translation memory entries.
  -  `InMemoryTranslationMemoryStore`: A deterministic in-memory backend for
     tests, examples, and small local memories.
+ -  `lookupMemory`: A passive context source factory that exposes translation
+    memory lookup as a tool.
 
 
 Installation
@@ -51,7 +54,12 @@ Usage
 -----
 
 ~~~~ typescript
-import { InMemoryTranslationMemoryStore } from "@vertana/context-memory";
+import {
+  InMemoryTranslationMemoryStore,
+  lookupMemory,
+} from "@vertana/context-memory";
+import { translate } from "@vertana/facade";
+import { openai } from "@ai-sdk/openai";
 
 const memory = new InMemoryTranslationMemoryStore([
   {
@@ -63,9 +71,13 @@ const memory = new InMemoryTranslationMemoryStore([
   },
 ]);
 
-const hits = await memory.search("Save your changes", {
-  targetLanguage: "ko",
-  maxHits: 5,
+const result = await translate(openai("gpt-4o"), "ko", "Save your changes.", {
+  contextSources: [
+    lookupMemory(memory, {
+      maxHits: 5,
+      maxContentChars: 2000,
+    }),
+  ],
 });
 ~~~~
 

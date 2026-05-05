@@ -65,6 +65,14 @@
       },
       "require": "./dist/in-memory.cjs",
       "import": "./dist/in-memory.js"
+    },
+    "./lookup": {
+      "types": {
+        "require": "./dist/lookup.d.cts",
+        "import": "./dist/lookup.d.ts"
+      },
+      "require": "./dist/lookup.cjs",
+      "import": "./dist/lookup.js"
     }
   },
   "sideEffects": false,

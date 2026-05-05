@@ -6,6 +6,12 @@
  */
 
 export { InMemoryTranslationMemoryStore } from "./in-memory.ts";
+export {
+  lookupMemory,
+  type LookupMemoryHitMetadata,
+  type LookupMemoryOptions,
+  type LookupMemoryParams,
+} from "./lookup.ts";
 export type {
   TranslationMemoryEntry,
   TranslationMemoryHit,
