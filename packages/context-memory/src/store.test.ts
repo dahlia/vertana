@@ -139,6 +139,19 @@ describe("InMemoryTranslationMemoryStore", () => {
     }
   });
 
+  it("scores emoji text without splitting surrogate pairs", async () => {
+    const store = new InMemoryTranslationMemoryStore([
+      { source: "😀ab", target: "emoji ab" },
+    ]);
+
+    const hits = await store.search("😀a", {
+      maxHits: 1,
+      minScore: 0.5,
+    });
+
+    assert.deepEqual(hits, []);
+  });
+
   it("adds entries individually and in batches", async () => {
     const store = new InMemoryTranslationMemoryStore();
 
@@ -225,6 +238,31 @@ describe("InMemoryTranslationMemoryStore", () => {
     assert.deepEqual(
       hits.map((hit) => hit.entry.target),
       ["기존 항목"],
+    );
+  });
+
+  it("commits validated batches without partial abort checks", async () => {
+    const store = new InMemoryTranslationMemoryStore();
+    const controller = new AbortController();
+    let checks = 0;
+    Object.defineProperty(controller.signal, "throwIfAborted", {
+      value() {
+        checks++;
+        if (checks > 2) {
+          throw new DOMException("Aborted", "AbortError");
+        }
+      },
+    });
+
+    await store.addMany([
+      { source: "Open file", target: "파일 열기" },
+      { source: "Close file", target: "파일 닫기" },
+    ], { signal: controller.signal });
+
+    const hits = await store.search("file", { maxHits: 10, minScore: 0 });
+    assert.deepEqual(
+      hits.map((hit) => hit.entry.target),
+      ["파일 열기", "파일 닫기"],
     );
   });
 

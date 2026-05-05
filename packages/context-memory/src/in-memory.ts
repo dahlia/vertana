@@ -98,7 +98,6 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
       }
 
       for (const stored of validatedEntries) {
-        options?.signal?.throwIfAborted();
         this.entries.push(stored);
         this.nextIndex++;
       }
@@ -278,13 +277,14 @@ function tokenize(text: string): readonly string[] {
 }
 
 function ngrams(text: string, size: number): readonly string[] {
-  if (text.length <= size) {
+  const codePoints = Array.from(text);
+  if (codePoints.length <= size) {
     return [text];
   }
 
   const grams: string[] = [];
-  for (let i = 0; i <= text.length - size; i++) {
-    grams.push(text.slice(i, i + size));
+  for (let i = 0; i <= codePoints.length - size; i++) {
+    grams.push(codePoints.slice(i, i + size).join(""));
   }
   return grams;
 }
