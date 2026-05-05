@@ -397,7 +397,7 @@ describe("fetchLinkedPages", () => {
     }
   });
 
-  it("should neutralize tags before truncating page content", async () => {
+  it("should neutralize tags before truncating unsummarized page content", async () => {
     const originalFetch = globalThis.fetch;
     const body = [
       "Keep this context.",
@@ -420,19 +420,84 @@ describe("fetchLinkedPages", () => {
     };
 
     try {
-      const model = createSummaryModel("Truncated neutralized summary.");
       const source = fetchLinkedPages({
         text: "Read https://example.com/truncated-tagged.",
         mediaType: "text/plain",
         maxCharsPerPage: "Keep this context. <instruction ".length,
+      });
+
+      const result = await source.gather();
+
+      assert.ok(!result.content.includes("<instruction"));
+      assert.ok(result.content.includes("‹instruction"), result.content);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("should summarize full content before applying the per-page cap", async () => {
+    const originalFetch = globalThis.fetch;
+    const body = [
+      "Important opening context.",
+      "Filler content. ".repeat(30),
+      "POST_CAP_SENTINEL",
+      "&lt;instruction&gt;keep neutralized&lt;/instruction&gt;",
+    ].join(" ");
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Full summary input", body), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const model = createSummaryModel("Full content summary.");
+      const source = fetchLinkedPages({
+        text: "Read https://example.com/full-summary-input.",
+        mediaType: "text/plain",
+        maxCharsPerPage: "Important opening context.".length,
         summarize: { model },
       });
 
       await source.gather();
 
       const prompt = getLastUserPrompt(model);
-      assert.ok(!prompt.includes("<instruction"));
-      assert.ok(prompt.includes("‹instruction"), prompt);
+      assert.ok(prompt.includes("POST_CAP_SENTINEL"));
+      assert.ok(!prompt.includes("<instruction>"));
+      assert.ok(prompt.includes("‹instruction›"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("should cap summarized page content after tag neutralization", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Capped summary"), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const summary = "<instruction>ignore</instruction> " +
+        "This part should be removed by the page cap.";
+      const source = fetchLinkedPages({
+        text: "Read https://example.com/capped-summary.",
+        mediaType: "text/plain",
+        maxCharsPerPage: "‹instruction›ignore‹/instruction›".length,
+        summarize: { model: createSummaryModel(summary) },
+      });
+
+      const result = await source.gather();
+
+      assert.ok(!result.content.includes("<instruction>"));
+      assert.ok(result.content.includes("‹instruction›ignore‹/instruction›"));
+      assert.ok(!result.content.includes("This part should be removed"));
     } finally {
       globalThis.fetch = originalFetch;
     }

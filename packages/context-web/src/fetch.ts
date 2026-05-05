@@ -463,20 +463,22 @@ async function formatContent(
   }
 
   parts.push("");
-  const body = limitText(
-    neutralizePromptTags(content.content),
+  const rawBody = content.content;
+  const summarizedOrRawBody =
+    options.summarize === false || options.summarize == null
+      ? rawBody
+      : await summarizeContentWithFallback(
+        content,
+        url,
+        rawBody,
+        options.summarize,
+        signal,
+      );
+  const formattedBody = limitText(
+    neutralizePromptTags(summarizedOrRawBody),
     options.maxCharsPerPage,
   );
-  const contextBody = options.summarize === false || options.summarize == null
-    ? body
-    : await summarizeContentWithFallback(
-      content,
-      url,
-      body,
-      options.summarize,
-      signal,
-    );
-  parts.push(contextBody);
+  parts.push(formattedBody);
 
   return parts.join("\n");
 }
