@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { MockLanguageModelV3 } from "ai/test";
 import { describe, it } from "./test-compat.ts";
 import { extractContent, fetchLinkedPages, fetchWebPage } from "./fetch.ts";
 
@@ -111,6 +112,36 @@ describe("fetchWebPage", () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it("should summarize fetched page content when configured", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Summarized page"), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const model = createSummaryModel("Concise passive summary.");
+      const source = fetchWebPage({
+        summarize: { model, maxChars: 15 },
+      });
+
+      const result = await source.gather({
+        url: "https://example.com/passive-summary",
+      });
+
+      assert.ok(result.content.includes("# Summarized page"));
+      assert.ok(result.content.includes("Concise passive"));
+      assert.ok(!result.content.includes("summary."));
+      assert.equal(model.doGenerateCalls.length, 1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe("fetchLinkedPages", () => {
@@ -201,6 +232,36 @@ describe("fetchLinkedPages", () => {
     }
   });
 
+  it("should summarize linked page content before formatting", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Linked summary"), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const model = createSummaryModel("Concise linked summary.");
+      const source = fetchLinkedPages({
+        text: "Read https://example.com/linked-summary.",
+        mediaType: "text/plain",
+        summarize: { model },
+      });
+
+      const result = await source.gather();
+
+      assert.ok(result.content.includes("# Linked summary"));
+      assert.ok(result.content.includes("Concise linked summary."));
+      assert.ok(!result.content.includes("TAIL_SENTINEL"));
+      assert.equal(model.doGenerateCalls.length, 1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("should reject invalid size limits", () => {
     assert.throws(
       () =>
@@ -216,8 +277,43 @@ describe("fetchLinkedPages", () => {
       () => fetchWebPage({ maxTotalChars: -1 }),
       RangeError,
     );
+
+    assert.throws(
+      () =>
+        fetchWebPage({
+          summarize: { model: createSummaryModel("x"), maxChars: 0 },
+        }),
+      RangeError,
+    );
   });
 });
+
+function createSummaryModel(summary: string): MockLanguageModelV3 {
+  return new MockLanguageModelV3({
+    doGenerate: async () => {
+      await Promise.resolve();
+      return {
+        content: [{ type: "text", text: summary }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: {
+            total: 1,
+            noCache: 1,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: {
+            total: 1,
+            text: 1,
+            reasoning: 0,
+          },
+        },
+        warnings: [],
+        response: { headers: {} },
+      };
+    },
+  });
+}
 
 function createArticleHtml(title: string): string {
   const paragraph = "This paragraph provides enough article content for " +

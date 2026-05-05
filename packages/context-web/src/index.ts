@@ -16,6 +16,7 @@ export {
   type FetchWebPageParams,
   type FetchWebPageSource,
   type WebPageContextOptions,
+  type WebPageSummaryOptions,
 } from "./fetch.ts";
 
 export { extractLinks, type MediaType } from "./extract-links.ts";

@@ -1,5 +1,6 @@
 import { getLogger } from "@logtape/logtape";
 import { Readability } from "@mozilla/readability";
+import { generateText, type LanguageModel } from "ai";
 import { parseHTML } from "linkedom";
 import type {
   ContextSourceGatherOptions,
@@ -191,6 +192,31 @@ export interface WebPageContextOptions {
    * Maximum number of characters to return from the final formatted context.
    */
   readonly maxTotalChars?: number;
+
+  /**
+   * Optional summarization settings.  When provided, each extracted page body
+   * is summarized before formatting it for context.
+   *
+   * @since 0.2.0
+   */
+  readonly summarize?: WebPageSummaryOptions | false;
+}
+
+/**
+ * Options for summarizing fetched web page content.
+ *
+ * @since 0.2.0
+ */
+export interface WebPageSummaryOptions {
+  /**
+   * The language model to use for summarization.
+   */
+  readonly model: LanguageModel;
+
+  /**
+   * Maximum number of characters to keep from the generated summary.
+   */
+  readonly maxChars?: number;
 }
 
 /**
@@ -291,6 +317,14 @@ export interface FetchLinkedPagesOptions {
    * @since 0.2.0
    */
   readonly maxTotalChars?: number;
+
+  /**
+   * Optional summarization settings.  When provided, each extracted page body
+   * is summarized before formatting it for context.
+   *
+   * @since 0.2.0
+   */
+  readonly summarize?: WebPageSummaryOptions | false;
 }
 
 /**
@@ -386,10 +420,16 @@ export function fetchLinkedPages(
         { count: results.length, total: linksToFetch.length },
       );
 
+      const formattedPages: string[] = [];
+      for (const { url, content } of results) {
+        gatherOptions?.signal?.throwIfAborted();
+        formattedPages.push(
+          await formatContent(content, url, options, gatherOptions?.signal),
+        );
+      }
+
       const formatted = limitText(
-        results
-          .map(({ url, content }) => formatContent(content, url, options))
-          .join("\n\n---\n\n"),
+        formattedPages.join("\n\n---\n\n"),
         options.maxTotalChars,
       );
 
@@ -408,11 +448,12 @@ export function fetchLinkedPages(
 /**
  * Formats extracted content for inclusion in the translation context.
  */
-function formatContent(
+async function formatContent(
   content: ExtractedContent,
   url: string,
   options: WebPageContextOptions = {},
-): string {
+  signal?: AbortSignal,
+): Promise<string> {
   const parts: string[] = [];
 
   parts.push(`# ${content.title}`);
@@ -423,7 +464,11 @@ function formatContent(
   }
 
   parts.push("");
-  parts.push(limitText(content.content, options.maxCharsPerPage));
+  const body = limitText(content.content, options.maxCharsPerPage);
+  const contextBody = options.summarize === false || options.summarize == null
+    ? body
+    : await summarizeContent(content, url, body, options.summarize, signal);
+  parts.push(contextBody);
 
   return parts.join("\n");
 }
@@ -487,7 +532,12 @@ function createFetchWebPageSource(
       }
 
       const formatted = limitText(
-        formatContent(content, params.url, options),
+        await formatContent(
+          content,
+          params.url,
+          options,
+          gatherOptions?.signal,
+        ),
         options.maxTotalChars,
       );
       return {
@@ -505,6 +555,9 @@ function createFetchWebPageSource(
 function validateContextOptions(options: WebPageContextOptions): void {
   validateCharacterLimit("maxCharsPerPage", options.maxCharsPerPage);
   validateCharacterLimit("maxTotalChars", options.maxTotalChars);
+  if (options.summarize !== false && options.summarize != null) {
+    validateCharacterLimit("summarize.maxChars", options.summarize.maxChars);
+  }
 }
 
 function validateCharacterLimit(name: string, value: number | undefined): void {
@@ -523,4 +576,31 @@ function limitText(text: string, maxChars: number | undefined): string {
   }
 
   return text.slice(0, maxChars);
+}
+
+async function summarizeContent(
+  content: ExtractedContent,
+  url: string,
+  body: string,
+  options: WebPageSummaryOptions,
+  signal?: AbortSignal,
+): Promise<string> {
+  logger.debug("Summarizing fetched content from: {url}", { url });
+
+  const result = await generateText({
+    model: options.model,
+    system:
+      "You summarize web pages for use as translation reference material. " +
+      "Preserve named entities, terminology, facts, and domain context. " +
+      "Do not translate the material unless the page itself is translated.",
+    prompt: `Title: ${content.title}
+Source: ${url}
+
+${body}
+
+Summarize this page for a translator. Output only the summary.`,
+    abortSignal: signal,
+  });
+
+  return limitText(result.text.trim(), options.maxChars);
 }
