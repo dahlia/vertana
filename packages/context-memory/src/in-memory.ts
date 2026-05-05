@@ -216,7 +216,7 @@ function scoreSimilarity(normalizedQuery: string, source: string): number {
 }
 
 function normalizeText(text: string): string {
-  return text.normalize("NFKC").toLocaleLowerCase().trim().replace(/\s+/g, " ");
+  return text.normalize("NFKC").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function tokenize(text: string): readonly string[] {

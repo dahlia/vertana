@@ -170,7 +170,7 @@ export function lookupMemory(
       "and returns previous translations for consistency.",
     mode: "passive",
     parameters: z.object({
-      query: z.string().min(1).describe(
+      query: z.string().trim().min(1).describe(
         "The source-language segment to look up in translation memory.",
       ),
       sourceLanguage: z.string().optional().describe(
@@ -192,9 +192,21 @@ export function lookupMemory(
       params: LookupMemoryParams,
       gatherOptions?: ContextSourceGatherOptions,
     ) {
+      const query = params.query.trim();
       const maxHits = validateMaxHits(params.maxHits ?? defaultMaxHits);
       const minScore = validateMinScore(params.minScore ?? defaultMinScore);
-      const hits = await store.search(params.query, {
+      if (query.length === 0) {
+        return {
+          content: "No translation memory matches found for an empty query.",
+          metadata: {
+            query,
+            hitCount: 0,
+            hits: [],
+          },
+        };
+      }
+
+      const hits = await store.search(query, {
         sourceLanguage: params.sourceLanguage,
         targetLanguage: params.targetLanguage,
         domain: params.domain,
@@ -208,9 +220,9 @@ export function lookupMemory(
       if (hits.length === 0) {
         return {
           content: "No translation memory matches found for: " +
-            neutralizePromptTags(params.query),
+            neutralizePromptTags(query),
           metadata: {
-            query: params.query,
+            query,
             hitCount: 0,
             hits: [],
           },
@@ -219,11 +231,11 @@ export function lookupMemory(
 
       return {
         content: limitText(
-          formatMemoryHits(params.query, hits),
+          formatMemoryHits(query, hits),
           maxContentChars,
         ),
         metadata: {
-          query: params.query,
+          query,
           hitCount: hits.length,
           hits: hitMetadata,
         },

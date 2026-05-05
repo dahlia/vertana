@@ -110,6 +110,53 @@ describe("lookupMemory", () => {
     });
   });
 
+  it("trims lookup queries before searching memory", async () => {
+    let observedQuery: string | undefined;
+    const store: TranslationMemoryStore = {
+      add() {
+        return Promise.resolve();
+      },
+      addMany() {
+        return Promise.resolve();
+      },
+      search(query: string): Promise<readonly TranslationMemoryHit[]> {
+        observedQuery = query;
+        return Promise.resolve([]);
+      },
+    };
+    const source = lookupMemory(store);
+
+    await source.gather({ query: "  Save changes  " });
+
+    assert.equal(observedQuery, "Save changes");
+  });
+
+  it("returns an empty result for whitespace-only queries", async () => {
+    let searched = false;
+    const store: TranslationMemoryStore = {
+      add() {
+        return Promise.resolve();
+      },
+      addMany() {
+        return Promise.resolve();
+      },
+      search(): Promise<readonly TranslationMemoryHit[]> {
+        searched = true;
+        return Promise.resolve([]);
+      },
+    };
+    const source = lookupMemory(store);
+
+    const result = await source.gather({ query: "   " });
+
+    assert.ok(!searched);
+    assert.deepEqual(result.metadata, {
+      query: "",
+      hitCount: 0,
+      hits: [],
+    });
+  });
+
   it("limits formatted output without leaving dangling surrogates", async () => {
     const store = new InMemoryTranslationMemoryStore([
       {

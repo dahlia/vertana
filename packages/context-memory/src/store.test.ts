@@ -118,6 +118,27 @@ describe("InMemoryTranslationMemoryStore", () => {
     );
   });
 
+  it("does not use locale-sensitive case folding for scoring", async () => {
+    const original = String.prototype.toLocaleLowerCase;
+    String.prototype.toLocaleLowerCase = function toLocaleLowerCase() {
+      throw new TypeError("Locale-sensitive case folding was used.");
+    };
+    try {
+      const store = new InMemoryTranslationMemoryStore([
+        { source: "SAVE CHANGES", target: "변경 사항 저장" },
+      ]);
+
+      const hits = await store.search("save changes", {
+        maxHits: 1,
+        minScore: 0,
+      });
+
+      assert.equal(hits[0].score, 1);
+    } finally {
+      String.prototype.toLocaleLowerCase = original;
+    }
+  });
+
   it("adds entries individually and in batches", async () => {
     const store = new InMemoryTranslationMemoryStore();
 
