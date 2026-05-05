@@ -247,6 +247,7 @@ export interface FetchWebPageSource
    * @param options Options for limiting fetched context.
    * @returns A configured passive context source.
    * @throws {RangeError} If a character limit is not a positive integer.
+   * @throws {TypeError} If summarization options are invalid.
    */
   (options: FetchWebPageOptions): PassiveContextSource<FetchWebPageParams>;
 }
@@ -345,6 +346,7 @@ export interface FetchLinkedPagesOptions {
  * @param options Options for the context source.
  * @returns A required context source.
  * @throws {RangeError} If a character limit is not a positive integer.
+ * @throws {TypeError} If summarization options are invalid.
  *
  * @example
  * ```typescript
@@ -565,9 +567,18 @@ function createFetchWebPageSource(
 function validateContextOptions(options: WebPageContextOptions): void {
   validateCharacterLimit("maxCharsPerPage", options.maxCharsPerPage);
   validateCharacterLimit("maxTotalChars", options.maxTotalChars);
-  if (options.summarize !== false && options.summarize != null) {
-    validateCharacterLimit("summarize.maxChars", options.summarize.maxChars);
+  const summarize: unknown = options.summarize;
+  if (summarize !== false && summarize != null) {
+    if (!hasSummarizationModel(summarize)) {
+      throw new TypeError("summarize.model must be provided.");
+    }
+    validateCharacterLimit("summarize.maxChars", summarize.maxChars);
   }
+}
+
+function hasSummarizationModel(value: unknown): value is WebPageSummaryOptions {
+  return typeof value === "object" && value != null && "model" in value &&
+    value.model != null;
 }
 
 function validateCharacterLimit(name: string, value: number | undefined): void {
@@ -648,7 +659,7 @@ Summarize this page for a translator. Output only the summary.${lengthInstructio
 
 function neutralizePromptTags(text: string): string {
   return text.replace(
-    /<\s*\/?\s*[a-z][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<![a-z][\s\S]*?>/gi,
+    /<\s*\/?\s*[a-z][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<![a-z][\s\S]*?>/gi,
     (tag) => tag.replaceAll("<", "‹").replaceAll(">", "›"),
   );
 }
