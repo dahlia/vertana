@@ -34,9 +34,10 @@ To be released.
     `TranslationMemoryStore` interface, deterministic
     `InMemoryTranslationMemoryStore`, and passive `lookupMemory()` context
     source.  Use it to provide previous source/target segment pairs as compact
-    translation examples for consistency across recurring text.  [[#2]]
+    translation examples for consistency across recurring text.  [[#2], [#12]]
 
 [#2]: https://github.com/dahlia/vertana/issues/2
+[#12]: https://github.com/dahlia/vertana/pull/12
 
 
 Version 0.1.2
