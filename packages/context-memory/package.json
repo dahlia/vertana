@@ -1,0 +1,101 @@
+{
+  "name": "@vertana/context-memory",
+  "version": "0.2.0",
+  "description": "Translation memory context sources for Vertana",
+  "keywords": [
+    "LLM",
+    "translation",
+    "context",
+    "translation-memory",
+    "TM"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Hong Minhee",
+    "email": "hong@minhee.org",
+    "url": "https://hongminhee.org/"
+  },
+  "homepage": "https://vertana.org/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dahlia/vertana.git",
+    "directory": "packages/context-memory"
+  },
+  "bugs": {
+    "url": "https://github.com/dahlia/vertana/issues"
+  },
+  "funding": [
+    "https://github.com/sponsors/dahlia"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.2.0",
+    "deno": ">=2.3.0"
+  },
+  "files": [
+    "dist/",
+    "package.json",
+    "README.md"
+  ],
+  "type": "module",
+  "module": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": {
+        "require": "./dist/index.d.cts",
+        "import": "./dist/index.d.ts"
+      },
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    },
+    "./store": {
+      "types": {
+        "require": "./dist/store.d.cts",
+        "import": "./dist/store.d.ts"
+      },
+      "require": "./dist/store.cjs",
+      "import": "./dist/store.js"
+    },
+    "./in-memory": {
+      "types": {
+        "require": "./dist/in-memory.d.cts",
+        "import": "./dist/in-memory.d.ts"
+      },
+      "require": "./dist/in-memory.cjs",
+      "import": "./dist/in-memory.js"
+    },
+    "./lookup": {
+      "types": {
+        "require": "./dist/lookup.d.cts",
+        "import": "./dist/lookup.d.ts"
+      },
+      "require": "./dist/lookup.cjs",
+      "import": "./dist/lookup.js"
+    }
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@vertana/core": "workspace:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:",
+    "@types/node": "catalog:",
+    "ai": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "tsdown",
+    "prepublish": "tsdown",
+    "test": "tsdown && node --experimental-transform-types --test --test-concurrency=4",
+    "test:bun": "tsdown && bun test --timeout 30000",
+    "test:deno": "deno test --allow-env --allow-net",
+    "test-all": "tsdown && node --experimental-transform-types --test && bun test --timeout 30000 && deno test --allow-env --allow-net"
+  }
+}

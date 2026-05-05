@@ -41,6 +41,7 @@ const MANUALS = {
     { text: "Translation quality", link: "/manuals/quality" },
     { text: "Context sources", link: "/manuals/context" },
     { text: "Web context", link: "/manuals/context-web" },
+    { text: "Memory context", link: "/manuals/context-memory" },
     { text: "CLI reference", link: "/manuals/cli" },
   ],
 };
@@ -51,6 +52,7 @@ const REFERENCES = {
     { text: "@vertana/core", link: "https://jsr.io/@vertana/core/doc" },
     { text: "@vertana/facade", link: "https://jsr.io/@vertana/facade/doc" },
     { text: "@vertana/context-web", link: "https://jsr.io/@vertana/context-web/doc" },
+    { text: "@vertana/context-memory", link: "https://jsr.io/@vertana/context-memory/doc" },
     { text: "@vertana/cli", link: "https://jsr.io/@vertana/cli/doc" },
   ],
 };
