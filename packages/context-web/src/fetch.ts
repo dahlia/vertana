@@ -260,11 +260,19 @@ export interface FetchLinkedPagesOptions {
 }
 
 /**
- * Creates a required context source that extracts all links from the given
- * text and fetches their content.
+ * Creates a required context source that extracts links from the given text
+ * and fetches their content.
  *
  * This source is invoked automatically before translation begins, providing
- * context from all linked pages.
+ * context from the linked pages.  By default it fetches up to ten links;
+ * raise or lower the cap via {@link FetchLinkedPagesOptions.maxLinks}.
+ *
+ * Intended for short, trusted link sets.  Pulling many large pages into
+ * required context can cause the translator to echo a fetched page back as
+ * the translation, especially when the combined reference material is much
+ * larger than the source text or is in the target language.  For large or
+ * untrusted link sets, prefer the passive {@link fetchWebPage} source so
+ * the model only fetches specific URLs on demand.
  *
  * @param options Options for the context source.
  * @returns A required context source.

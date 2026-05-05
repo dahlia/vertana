@@ -18,6 +18,23 @@ To be released.
 [#5]: https://github.com/dahlia/vertana/pull/5
 
 
+Version 0.1.2
+-------------
+
+Released on May 5, 2026.
+
+### @vertana/core
+
+ -  Hardened the system prompt against context pollution by wrapping required
+    context inside an explicit `<reference_material>` block and prepending a
+    rule instructing the model not to translate, quote, or echo any of it.
+    This significantly reduces the chance that large fetched reference pages
+    are emitted as the translation [[#7], [#10]].
+
+[#7]: https://github.com/dahlia/vertana/issues/7
+[#10]: https://github.com/dahlia/vertana/pull/1
+
+
 Version 0.1.1
 -------------
 

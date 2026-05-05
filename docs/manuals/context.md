@@ -358,14 +358,16 @@ Vertana provides ready-to-use context sources through separate packages.
 
 The `@vertana/context-web` package provides context sources for fetching
 and extracting content from web pages.  This is useful when translating
-documents that reference external articles or resources.
+documents that reference external articles or resources.  The recommended
+default is the *passive* `fetchWebPage` source so the translator only
+fetches when it decides it needs more context:
 
 ~~~~ typescript twoslash
 import type { LanguageModel } from "ai";
 declare const model: LanguageModel;
 // ---cut-before---
 import { translate } from "@vertana/facade";
-import { fetchLinkedPages, fetchWebPage } from "@vertana/context-web";
+import { fetchWebPage } from "@vertana/context-web";
 
 const text = `
 Read the introduction at https://example.com/intro.
@@ -373,15 +375,15 @@ Read the introduction at https://example.com/intro.
 
 const result = await translate(model, "ko", text, {
   contextSources: [
-    // Pre-fetch all links in the text
-    fetchLinkedPages({ text, mediaType: "text/plain" }),
-    // Allow LLM to fetch additional URLs on demand
+    // The LLM may fetch a specific URL when it needs more context.
     fetchWebPage,
   ],
 });
 ~~~~
 
-See the [Web context](/manuals/context-web) guide for detailed documentation.
+See the [Web context](/manuals/context-web) guide for detailed documentation,
+including the *required* `fetchLinkedPages` helper for short, trusted link
+sets.
 
 
 Best practices
