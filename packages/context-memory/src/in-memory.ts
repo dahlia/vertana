@@ -12,6 +12,15 @@ const DEFAULT_MIN_SCORE = 0.2;
 interface StoredTranslationMemoryEntry {
   readonly entry: TranslationMemoryEntry;
   readonly index: number;
+  readonly normalizedSource: string;
+  readonly sourceTokens: readonly string[];
+  readonly sourceNgrams: readonly string[];
+}
+
+interface PreparedText {
+  readonly text: string;
+  readonly tokens: readonly string[];
+  readonly ngrams: readonly string[];
 }
 
 /**
@@ -35,10 +44,7 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
    */
   constructor(entries: readonly TranslationMemoryEntry[] = []) {
     for (const entry of entries) {
-      this.entries.push({
-        entry: validateEntry(entry),
-        index: this.nextIndex,
-      });
+      this.entries.push(createStoredEntry(entry, this.nextIndex));
       this.nextIndex++;
     }
   }
@@ -57,10 +63,7 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
   ): Promise<void> {
     try {
       options?.signal?.throwIfAborted();
-      this.entries.push({
-        entry: validateEntry(entry),
-        index: this.nextIndex,
-      });
+      this.entries.push(createStoredEntry(entry, this.nextIndex));
       this.nextIndex++;
       return Promise.resolve();
     } catch (error) {
@@ -81,18 +84,17 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
     options?: TranslationMemoryOperationOptions,
   ): Promise<void> {
     try {
-      const validatedEntries: TranslationMemoryEntry[] = [];
+      const validatedEntries: StoredTranslationMemoryEntry[] = [];
       for (const entry of entries) {
         options?.signal?.throwIfAborted();
-        validatedEntries.push(validateEntry(entry));
+        validatedEntries.push(
+          createStoredEntry(entry, this.nextIndex + validatedEntries.length),
+        );
       }
 
-      for (const entry of validatedEntries) {
+      for (const stored of validatedEntries) {
         options?.signal?.throwIfAborted();
-        this.entries.push({
-          entry,
-          index: this.nextIndex,
-        });
+        this.entries.push(stored);
         this.nextIndex++;
       }
       return Promise.resolve();
@@ -121,6 +123,7 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
       if (normalizedQuery.length === 0) {
         throw new TypeError("query must not be empty.");
       }
+      const preparedQuery = prepareText(normalizedQuery);
       const hits: Array<TranslationMemoryHit & { readonly index: number }> = [];
 
       for (const stored of this.entries) {
@@ -129,7 +132,7 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
           continue;
         }
 
-        const score = scoreSimilarity(normalizedQuery, stored.entry.source);
+        const score = scoreSimilarity(preparedQuery, stored);
         if (score >= minScore) {
           hits.push({ entry: stored.entry, score, index: stored.index });
         }
@@ -137,12 +140,30 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
 
       hits.sort((a, b) => b.score - a.score || a.index - b.index);
       return Promise.resolve(
-        hits.slice(0, maxHits).map(({ entry, score }) => ({ entry, score })),
+        hits.slice(0, maxHits).map(({ entry, score }) => ({
+          entry: cloneEntry(entry),
+          score,
+        })),
       );
     } catch (error) {
       return Promise.reject(error);
     }
   }
+}
+
+function createStoredEntry(
+  entry: TranslationMemoryEntry,
+  index: number,
+): StoredTranslationMemoryEntry {
+  const validatedEntry = validateEntry(entry);
+  const normalizedSource = normalizeText(validatedEntry.source);
+  return {
+    entry: validatedEntry,
+    index,
+    normalizedSource,
+    sourceTokens: tokenize(normalizedSource),
+    sourceNgrams: ngrams(normalizedSource, 3),
+  };
 }
 
 function validateEntry(entry: TranslationMemoryEntry): TranslationMemoryEntry {
@@ -152,10 +173,28 @@ function validateEntry(entry: TranslationMemoryEntry): TranslationMemoryEntry {
   if (entry.target.trim().length === 0) {
     throw new TypeError("target must not be empty.");
   }
+  return cloneEntry(entry);
+}
+
+function cloneEntry(entry: TranslationMemoryEntry): TranslationMemoryEntry {
   return {
     ...entry,
-    metadata: entry.metadata == null ? undefined : { ...entry.metadata },
+    metadata: entry.metadata == null
+      ? undefined
+      : cloneMetadata(entry.metadata),
   };
+}
+
+function cloneMetadata(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  try {
+    return structuredClone(metadata);
+  } catch (error) {
+    throw new TypeError("metadata must be structured-cloneable.", {
+      cause: error,
+    });
+  }
 }
 
 function validateMaxHits(value: number | undefined): number {
@@ -201,17 +240,27 @@ function matchesExact(
   return filterValue == null || entryValue === filterValue;
 }
 
-function scoreSimilarity(normalizedQuery: string, source: string): number {
-  const normalizedSource = normalizeText(source);
-  if (normalizedQuery.length === 0 || normalizedSource.length === 0) {
+function prepareText(text: string): PreparedText {
+  return {
+    text,
+    tokens: tokenize(text),
+    ngrams: ngrams(text, 3),
+  };
+}
+
+function scoreSimilarity(
+  query: PreparedText,
+  source: StoredTranslationMemoryEntry,
+): number {
+  if (query.text.length === 0 || source.normalizedSource.length === 0) {
     return 0;
   }
-  if (normalizedQuery === normalizedSource) {
+  if (query.text === source.normalizedSource) {
     return 1;
   }
   return Math.max(
-    diceCoefficient(tokenize(normalizedQuery), tokenize(normalizedSource)),
-    diceCoefficient(ngrams(normalizedQuery, 3), ngrams(normalizedSource, 3)),
+    diceCoefficient(query.tokens, source.sourceTokens),
+    diceCoefficient(query.ngrams, source.sourceNgrams),
   );
 }
 

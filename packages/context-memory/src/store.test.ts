@@ -176,6 +176,36 @@ describe("InMemoryTranslationMemoryStore", () => {
     assert.deepEqual(hits[1].entry.metadata, { approved: true });
   });
 
+  it("returns immutable snapshots from search results", async () => {
+    const store = new InMemoryTranslationMemoryStore([
+      {
+        source: "Approve changes",
+        target: "변경 사항 승인",
+        metadata: { review: { approved: true } },
+      },
+    ]);
+
+    const [hit] = await store.search("Approve changes", {
+      maxHits: 1,
+      minScore: 0,
+    });
+
+    Object.assign(hit.entry, { target: "변경됨" });
+    const review = hit.entry.metadata?.review;
+    assert.ok(isReviewMetadata(review));
+    review.approved = false;
+
+    const [nextHit] = await store.search("Approve changes", {
+      maxHits: 1,
+      minScore: 0,
+    });
+
+    assert.equal(nextHit.entry.target, "변경 사항 승인");
+    assert.deepEqual(nextHit.entry.metadata, {
+      review: { approved: true },
+    });
+  });
+
   it("does not partially add invalid batches", async () => {
     const store = new InMemoryTranslationMemoryStore([
       { source: "Existing entry", target: "기존 항목" },
@@ -230,3 +260,11 @@ describe("InMemoryTranslationMemoryStore", () => {
     );
   });
 });
+
+function isReviewMetadata(
+  value: unknown,
+): value is { approved: boolean } {
+  return typeof value === "object" && value != null &&
+    "approved" in value &&
+    typeof value.approved === "boolean";
+}
