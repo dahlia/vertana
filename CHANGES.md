@@ -23,9 +23,10 @@ To be released.
     configurable `fetchWebPage()` sources, plus optional fetched-page
     summarization with an explicit model.  Use these options to keep web
     reference material from overwhelming the source text in translation
-    prompts [[#8]].
+    prompts.  [[#8], [#11]]
 
 [#8]: https://github.com/dahlia/vertana/issues/8
+[#11]: https://github.com/dahlia/vertana/pull/11
 
 
 Version 0.1.2
@@ -39,7 +40,7 @@ Released on May 5, 2026.
     context inside an explicit `<reference_material>` block and prepending a
     rule instructing the model not to translate, quote, or echo any of it.
     This significantly reduces the chance that large fetched reference pages
-    are emitted as the translation [[#7], [#10]].
+    are emitted as the translation.  [[#7], [#10]]
 
 [#7]: https://github.com/dahlia/vertana/issues/7
 [#10]: https://github.com/dahlia/vertana/pull/1
@@ -55,7 +56,7 @@ Released on March 3, 2026.
  -  Fixed `evaluate()` structured output schema compatibility by removing
     unsupported numeric bounds from the `score` JSON schema and clamping
     scores to the `[0, 1]` range after parsing, which resolves failures with
-    Anthropic models in the refinement phase [[#6]].
+    Anthropic models in the refinement phase.  [[#6]]
 
 [#6]: https://github.com/dahlia/vertana/issues/6
 
