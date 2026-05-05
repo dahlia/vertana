@@ -207,10 +207,10 @@ export function lookupMemory(
       }
 
       const hits = await store.search(query, {
-        sourceLanguage: params.sourceLanguage,
-        targetLanguage: params.targetLanguage,
-        domain: params.domain,
-        namespace: params.namespace,
+        sourceLanguage: normalizeFilter(params.sourceLanguage),
+        targetLanguage: normalizeFilter(params.targetLanguage),
+        domain: normalizeFilter(params.domain),
+        namespace: normalizeFilter(params.namespace),
         maxHits,
         minScore,
         signal: gatherOptions?.signal,
@@ -273,6 +273,11 @@ function validateMaxContentChars(value: number | undefined): number {
     throw new RangeError("maxContentChars must be a positive integer.");
   }
   return maxContentChars;
+}
+
+function normalizeFilter(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === "" ? undefined : trimmed;
 }
 
 function formatMemoryHits(

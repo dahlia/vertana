@@ -131,6 +131,39 @@ describe("lookupMemory", () => {
     assert.equal(observedQuery, "Save changes");
   });
 
+  it("ignores blank lookup filters when searching memory", async () => {
+    let observedOptions: TranslationMemorySearchOptions | undefined;
+    const store: TranslationMemoryStore = {
+      add() {
+        return Promise.resolve();
+      },
+      addMany() {
+        return Promise.resolve();
+      },
+      search(
+        _query: string,
+        options?: TranslationMemorySearchOptions,
+      ): Promise<readonly TranslationMemoryHit[]> {
+        observedOptions = options;
+        return Promise.resolve([]);
+      },
+    };
+    const source = lookupMemory(store);
+
+    await source.gather({
+      query: "Save changes",
+      sourceLanguage: "  ",
+      targetLanguage: "",
+      domain: "\t",
+      namespace: "\n",
+    });
+
+    assert.equal(observedOptions?.sourceLanguage, undefined);
+    assert.equal(observedOptions?.targetLanguage, undefined);
+    assert.equal(observedOptions?.domain, undefined);
+    assert.equal(observedOptions?.namespace, undefined);
+  });
+
   it("returns an empty result for whitespace-only queries", async () => {
     let searched = false;
     const store: TranslationMemoryStore = {

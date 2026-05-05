@@ -51,6 +51,10 @@ export interface TranslationMemoryEntry {
 
   /**
    * Additional backend- or application-specific metadata.
+   *
+   * Store implementations may clone entries before saving or returning them.
+   * Use structured-cloneable values when the entry needs to work with the
+   * built-in in-memory store.
    */
   readonly metadata?: Record<string, unknown>;
 }

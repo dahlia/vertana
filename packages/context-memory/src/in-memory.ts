@@ -27,6 +27,8 @@ interface PreparedText {
  * In-memory translation memory store using deterministic lexical similarity.
  *
  * This backend is intended for tests, examples, and small local memories.
+ * It clones entries when storing and returning them, so entry metadata must be
+ * structured-cloneable.
  * Persistent or vector-based stores can implement {@link TranslationMemoryStore}
  * with the same entry and hit shapes.
  *
@@ -40,7 +42,8 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
    * Creates an in-memory store.
    *
    * @param entries Optional initial entries.
-   * @throws {TypeError} If any entry is invalid.
+   * @throws {TypeError} If any entry is invalid or contains metadata that
+   *         cannot be structured-cloned.
    */
   constructor(entries: readonly TranslationMemoryEntry[] = []) {
     for (const entry of entries) {
@@ -55,7 +58,8 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
    * @param entry The entry to add.
    * @param options Optional operation settings.
    * @returns A promise that resolves when the entry has been stored.
-   * @throws {TypeError} If the entry is invalid.
+   * @throws {TypeError} If the entry is invalid or contains metadata that
+   *         cannot be structured-cloned.
    */
   add(
     entry: TranslationMemoryEntry,
@@ -77,7 +81,8 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
    * @param entries The entries to add.
    * @param options Optional operation settings.
    * @returns A promise that resolves when all entries have been stored.
-   * @throws {TypeError} If any entry is invalid.
+   * @throws {TypeError} If any entry is invalid or contains metadata that
+   *         cannot be structured-cloned.
    */
   addMany(
     entries: readonly TranslationMemoryEntry[],
