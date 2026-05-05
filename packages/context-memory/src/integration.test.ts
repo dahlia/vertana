@@ -8,14 +8,16 @@ import { getTestModel, hasTestModel } from "./testing.ts";
 
 let cachedModel: LanguageModel | undefined;
 
-async function getModel(): Promise<LanguageModel> {
+async function getModel(signal?: AbortSignal): Promise<LanguageModel> {
+  signal?.throwIfAborted();
   if (cachedModel == null) {
-    const model = await getTestModel();
+    const model = await getTestModel(signal);
     if (model == null) {
       throw new TypeError("TEST_MODEL not set.");
     }
     cachedModel = model;
   }
+  signal?.throwIfAborted();
   return cachedModel;
 }
 
