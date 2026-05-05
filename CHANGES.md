@@ -4,7 +4,7 @@ Vertana changelog
 Version 0.1.2
 -------------
 
-To be released.
+Released on May 5, 2026.
 
 ### @vertana/core
 
