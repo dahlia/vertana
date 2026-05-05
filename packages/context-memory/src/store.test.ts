@@ -132,6 +132,51 @@ describe("InMemoryTranslationMemoryStore", () => {
     assert.equal(hits.length, 3);
   });
 
+  it("stores immutable snapshots of added entries", async () => {
+    const initialEntry = { source: "Open file", target: "파일 열기" };
+    const addedEntry = {
+      source: "Close file",
+      target: "파일 닫기",
+      metadata: { approved: true },
+    };
+    const store = new InMemoryTranslationMemoryStore([initialEntry]);
+
+    await store.add(addedEntry);
+    initialEntry.target = "변경됨";
+    addedEntry.target = "변경됨";
+    addedEntry.metadata.approved = false;
+
+    const hits = await store.search("file", { maxHits: 2, minScore: 0 });
+
+    assert.deepEqual(
+      hits.map((hit) => hit.entry.target),
+      ["파일 열기", "파일 닫기"],
+    );
+    assert.deepEqual(hits[1].entry.metadata, { approved: true });
+  });
+
+  it("does not partially add invalid batches", async () => {
+    const store = new InMemoryTranslationMemoryStore([
+      { source: "Existing entry", target: "기존 항목" },
+    ]);
+
+    await assert.rejects(
+      () =>
+        store.addMany([
+          { source: "Valid entry", target: "유효한 항목" },
+          { source: "", target: "비어 있음" },
+        ]),
+      TypeError,
+    );
+
+    const hits = await store.search("entry", { maxHits: 10, minScore: 0 });
+
+    assert.deepEqual(
+      hits.map((hit) => hit.entry.target),
+      ["기존 항목"],
+    );
+  });
+
   it("rejects invalid entries and search options", async () => {
     const store = new InMemoryTranslationMemoryStore();
 

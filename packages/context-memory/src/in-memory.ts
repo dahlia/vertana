@@ -76,13 +76,28 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
    * @returns A promise that resolves when all entries have been stored.
    * @throws {TypeError} If any entry is invalid.
    */
-  async addMany(
+  addMany(
     entries: readonly TranslationMemoryEntry[],
     options?: TranslationMemoryOperationOptions,
   ): Promise<void> {
-    for (const entry of entries) {
-      options?.signal?.throwIfAborted();
-      await this.add(entry, options);
+    try {
+      const validatedEntries: TranslationMemoryEntry[] = [];
+      for (const entry of entries) {
+        options?.signal?.throwIfAborted();
+        validatedEntries.push(validateEntry(entry));
+      }
+
+      for (const entry of validatedEntries) {
+        options?.signal?.throwIfAborted();
+        this.entries.push({
+          entry,
+          index: this.nextIndex,
+        });
+        this.nextIndex++;
+      }
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
     }
   }
 
@@ -134,7 +149,10 @@ function validateEntry(entry: TranslationMemoryEntry): TranslationMemoryEntry {
   if (entry.target.trim().length === 0) {
     throw new TypeError("target must not be empty.");
   }
-  return entry;
+  return {
+    ...entry,
+    metadata: entry.metadata == null ? undefined : { ...entry.metadata },
+  };
 }
 
 function validateMaxHits(value: number | undefined): number {
