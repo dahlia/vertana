@@ -17,6 +17,16 @@ To be released.
 [#3]: https://github.com/dahlia/vertana/issues/3
 [#5]: https://github.com/dahlia/vertana/pull/5
 
+### @vertana/context-web
+
+ -  Added per-page and total character caps to `fetchLinkedPages()` and
+    configurable `fetchWebPage()` sources, plus optional fetched-page
+    summarization with an explicit model.  Use these options to keep web
+    reference material from overwhelming the source text in translation
+    prompts [[#8]].
+
+[#8]: https://github.com/dahlia/vertana/issues/8
+
 
 Version 0.1.2
 -------------
