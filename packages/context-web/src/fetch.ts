@@ -456,7 +456,7 @@ async function formatContent(
   const parts: string[] = [];
 
   parts.push(`# ${neutralizePromptTags(content.title)}`);
-  parts.push(`Source: ${url}`);
+  parts.push(`Source: ${neutralizePromptTags(url)}`);
 
   if (content.byline != null) {
     parts.push(`Author: ${neutralizePromptTags(content.byline)}`);
@@ -622,6 +622,7 @@ async function summarizeContent(
 ): Promise<string> {
   logger.debug("Summarizing fetched content from: {url}.", { url });
   const neutralizedTitle = neutralizePromptTags(content.title);
+  const neutralizedUrl = neutralizePromptTags(url);
   const neutralizedBody = neutralizePromptTags(body);
   const lengthInstruction = options.maxChars == null
     ? ""
@@ -634,7 +635,7 @@ async function summarizeContent(
       "Preserve named entities, terminology, facts, and domain context. " +
       "Do not translate the material unless the page itself is translated.",
     prompt: `Title: ${neutralizedTitle}
-Source: ${url}
+Source: ${neutralizedUrl}
 
 ${neutralizedBody}
 
