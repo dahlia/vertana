@@ -1,6 +1,6 @@
 {
   "name": "@vertana/context-memory",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Translation memory context sources for Vertana",
   "keywords": [
     "LLM",
