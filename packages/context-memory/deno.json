@@ -14,7 +14,7 @@
   ],
   "tasks": {
     "build": "pnpm build",
-    "test": "deno test --allow-env --parallel",
+    "test": "deno test --allow-env --allow-net --parallel",
     "test:node": {
       "dependencies": [
         "build"

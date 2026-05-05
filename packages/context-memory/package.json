@@ -95,7 +95,7 @@
     "prepublish": "tsdown",
     "test": "tsdown && node --experimental-transform-types --test --test-concurrency=4",
     "test:bun": "tsdown && bun test --timeout 30000",
-    "test:deno": "deno test --allow-env",
-    "test-all": "tsdown && node --experimental-transform-types --test && bun test --timeout 30000 && deno test"
+    "test:deno": "deno test --allow-env --allow-net",
+    "test-all": "tsdown && node --experimental-transform-types --test && bun test --timeout 30000 && deno test --allow-env --allow-net"
   }
 }
