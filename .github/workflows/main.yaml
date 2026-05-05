@@ -127,7 +127,9 @@ jobs:
         NPM_CONFIG_PROVENANCE: "true"
 
   public-docs:
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref_type == 'tag' || github.ref == 'refs/heads/main')
     needs: [publish]
     runs-on: ubuntu-latest
     permissions:
