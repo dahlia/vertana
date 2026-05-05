@@ -504,7 +504,11 @@ function createFetchWebPageFactory(): FetchWebPageSource {
       createFetchWebPageSource(options ?? {})) as FetchWebPageSource;
 
   Object.defineProperties(factory, {
-    name: { value: defaultSource.name, configurable: true },
+    name: {
+      value: defaultSource.name,
+      enumerable: true,
+      configurable: true,
+    },
     description: {
       value: defaultSource.description,
       enumerable: true,

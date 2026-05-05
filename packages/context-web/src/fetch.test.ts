@@ -78,6 +78,7 @@ describe("fetchWebPage", () => {
     assert.equal(fetchWebPage.name, "fetch-web-page");
     assert.ok(fetchWebPage.description.length > 0);
     assert.ok(fetchWebPage.parameters != null);
+    assert.ok(Object.keys(fetchWebPage).includes("name"));
   });
 
   it("should have url parameter", () => {
