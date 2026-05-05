@@ -80,12 +80,13 @@ Vertana is a monorepo which contains multiple packages.  If you are looking for
 one package to start with, check out *@vertana/facade*.  The following is a list
 of the available packages:
 
-| Package                                        | JSR                             | npm                             | Description                                   |
-| ---------------------------------------------- | ------------------------------- | ------------------------------- | --------------------------------------------- |
-| [@vertana/core](/packages/core/)               | [JSR][jsr:@vertana/core]        | [npm][npm:@vertana/core]        | Core translation logic and utilities          |
-| [@vertana/facade](/packages/facade/)           | [JSR][jsr:@vertana/facade]      | [npm][npm:@vertana/facade]      | High-level facade for easy translation tasks  |
-| [@vertana/context-web](/packages/context-web/) | [JSR][jsr:@vertana/context-web] | [npm][npm:@vertana/context-web] | Web page fetch/search for translation context |
-| [@vertana/cli](/packages/cli/)                 | [JSR][jsr:@vertana/cli]         | [npm][npm:@vertana/cli]         | Command-line interface for translation        |
+| Package                                              | JSR                                | npm                                | Description                                   |
+| ---------------------------------------------------- | ---------------------------------- | ---------------------------------- | --------------------------------------------- |
+| [@vertana/core](/packages/core/)                     | [JSR][jsr:@vertana/core]           | [npm][npm:@vertana/core]           | Core translation logic and utilities          |
+| [@vertana/facade](/packages/facade/)                 | [JSR][jsr:@vertana/facade]         | [npm][npm:@vertana/facade]         | High-level facade for easy translation tasks  |
+| [@vertana/context-web](/packages/context-web/)       | [JSR][jsr:@vertana/context-web]    | [npm][npm:@vertana/context-web]    | Web page fetch/search for translation context |
+| [@vertana/context-memory](/packages/context-memory/) | [JSR][jsr:@vertana/context-memory] | [npm][npm:@vertana/context-memory] | Translation memory lookup for consistency     |
+| [@vertana/cli](/packages/cli/)                       | [JSR][jsr:@vertana/cli]            | [npm][npm:@vertana/cli]            | Command-line interface for translation        |
 
 [jsr:@vertana/core]: https://jsr.io/@vertana/core
 [npm:@vertana/core]: https://www.npmjs.com/package/@vertana/core
@@ -93,5 +94,7 @@ of the available packages:
 [npm:@vertana/facade]: https://www.npmjs.com/package/@vertana/facade
 [jsr:@vertana/context-web]: https://jsr.io/@vertana/context-web
 [npm:@vertana/context-web]: https://www.npmjs.com/package/@vertana/context-web
+[jsr:@vertana/context-memory]: https://jsr.io/@vertana/context-memory
+[npm:@vertana/context-memory]: https://www.npmjs.com/package/@vertana/context-memory
 [jsr:@vertana/cli]: https://jsr.io/@vertana/cli
 [npm:@vertana/cli]: https://www.npmjs.com/package/@vertana/cli

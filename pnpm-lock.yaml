@@ -98,6 +98,9 @@ importers:
       '@vertana/cli':
         specifier: 'workspace:'
         version: link:../packages/cli
+      '@vertana/context-memory':
+        specifier: 'workspace:'
+        version: link:../packages/context-memory
       '@vertana/context-web':
         specifier: 'workspace:'
         version: link:../packages/context-web
@@ -193,6 +196,12 @@ importers:
         specifier: 'catalog:'
         version: 4.2.1
     devDependencies:
+      '@ai-sdk/anthropic':
+        specifier: 'catalog:'
+        version: 3.0.1(zod@4.2.1)
+      '@ai-sdk/google':
+        specifier: 'catalog:'
+        version: 3.0.1(zod@4.2.1)
       '@ai-sdk/openai':
         specifier: 'catalog:'
         version: 3.0.1(zod@4.2.1)

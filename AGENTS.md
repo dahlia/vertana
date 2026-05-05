@@ -141,6 +141,9 @@ Architecture
  -  *@vertana/context-web* (*packages/context-web/*): Web context gathering.
     Provides context sources for fetching and extracting content from linked
     web pages.
+ -  *@vertana/context-memory* (*packages/context-memory/*): Translation memory
+    context gathering.  Provides pluggable storage interfaces and passive
+    memory lookup for reusing previous translations.
  -  *@vertana/cli* (*packages/cli/*): Command-line interface for translation.
 
 ### Dual publishing

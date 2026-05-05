@@ -28,6 +28,16 @@ To be released.
 [#8]: https://github.com/dahlia/vertana/issues/8
 [#11]: https://github.com/dahlia/vertana/pull/11
 
+### @vertana/context-memory
+
+ -  Added the new `@vertana/context-memory` package with a pluggable
+    `TranslationMemoryStore` interface, deterministic
+    `InMemoryTranslationMemoryStore`, and passive `lookupMemory()` context
+    source.  Use it to provide previous source/target segment pairs as compact
+    translation examples for consistency across recurring text.  [[#2]]
+
+[#2]: https://github.com/dahlia/vertana/issues/2
+
 
 Version 0.1.2
 -------------
