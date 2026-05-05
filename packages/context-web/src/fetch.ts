@@ -600,7 +600,7 @@ async function summarizeContentWithFallback(
       throw error;
     }
 
-    logger.warn("Failed to summarize fetched content from: {url}", {
+    logger.warn("Failed to summarize fetched content from: {url}.", {
       url,
       error: String(error),
     });
@@ -615,7 +615,7 @@ async function summarizeContent(
   options: WebPageSummaryOptions,
   signal?: AbortSignal,
 ): Promise<string> {
-  logger.debug("Summarizing fetched content from: {url}", { url });
+  logger.debug("Summarizing fetched content from: {url}.", { url });
   const neutralizedBody = neutralizePromptTags(body);
 
   const result = await generateText({
@@ -638,7 +638,7 @@ Summarize this page for a translator. Output only the summary.`,
 
 function neutralizePromptTags(text: string): string {
   return text.replace(
-    /<\s*\/?\s*[a-z][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>/gi,
+    /<\s*\/?\s*[a-z][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<![a-z][\s\S]*?>/gi,
     (tag) => tag.replaceAll("<", "‹").replaceAll(">", "›"),
   );
 }
