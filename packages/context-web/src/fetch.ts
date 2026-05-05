@@ -1,5 +1,6 @@
 import { getLogger } from "@logtape/logtape";
 import { Readability } from "@mozilla/readability";
+import { generateText, type LanguageModel } from "ai";
 import { parseHTML } from "linkedom";
 import type {
   ContextSourceGatherOptions,
@@ -10,6 +11,9 @@ import { z } from "zod";
 import { extractLinks, type MediaType } from "./extract-links.ts";
 
 const logger = getLogger(["vertana", "context-web", "fetch"]);
+const DEFAULT_SUMMARY_INPUT_MAX_CHARS = 200_000;
+const SUMMARY_FALLBACK_NOTICE =
+  "Summarization failed; using extracted page text instead.";
 
 /**
  * Result of extracting content from a web page.
@@ -165,12 +169,99 @@ async function fetchAndExtract(
 
 /**
  * Parameters for the fetchWebPage context source.
+ *
+ * @since 0.2.0
  */
-interface FetchWebPageParams {
+export interface FetchWebPageParams {
   /**
    * The URL to fetch.
    */
   readonly url: string;
+}
+
+/**
+ * Options for limiting fetched web page context.
+ *
+ * @since 0.2.0
+ */
+export interface WebPageContextOptions {
+  /**
+   * Maximum number of characters to keep from each fetched page's extracted
+   * body before formatting it for context.
+   */
+  readonly maxCharsPerPage?: number;
+
+  /**
+   * Maximum number of characters to return from the final formatted context.
+   */
+  readonly maxTotalChars?: number;
+
+  /**
+   * Optional summarization settings.  When provided, each extracted page body
+   * is summarized before formatting it for context.
+   *
+   * @since 0.2.0
+   */
+  readonly summarize?: WebPageSummaryOptions | false;
+}
+
+/**
+ * Options for summarizing fetched web page content.
+ *
+ * @since 0.2.0
+ */
+export interface WebPageSummaryOptions {
+  /**
+   * The language model to use for summarization.
+   */
+  readonly model: LanguageModel;
+
+  /**
+   * Maximum number of characters to keep from the generated summary.
+   */
+  readonly maxChars?: number;
+
+  /**
+   * Maximum number of characters from the extracted page body to send to the
+   * summarizer model.
+   *
+   * @default 200000
+   * @since 0.2.0
+   */
+  readonly maxInputChars?: number;
+}
+
+/**
+ * Options for creating a configured fetchWebPage context source.
+ *
+ * @since 0.2.0
+ */
+export type FetchWebPageOptions = WebPageContextOptions;
+
+/**
+ * The default fetchWebPage context source, also callable as a factory for
+ * configured sources.
+ *
+ * @since 0.2.0
+ */
+export interface FetchWebPageSource
+  extends PassiveContextSource<FetchWebPageParams> {
+  /**
+   * Creates a passive context source with the default options.
+   *
+   * @returns A configured passive context source.
+   */
+  (): PassiveContextSource<FetchWebPageParams>;
+
+  /**
+   * Creates a configured passive context source.
+   *
+   * @param options Options for limiting fetched context.
+   * @returns A configured passive context source.
+   * @throws {RangeError} If a character limit is not a positive integer.
+   * @throws {TypeError} If summarization options are invalid.
+   */
+  (options: FetchWebPageOptions): PassiveContextSource<FetchWebPageParams>;
 }
 
 /**
@@ -192,41 +283,7 @@ interface FetchWebPageParams {
  *
  * @since 0.1.0
  */
-export const fetchWebPage: PassiveContextSource<FetchWebPageParams> = {
-  name: "fetch-web-page",
-  description: "Fetches a web page and extracts its main content. " +
-    "Use this when you need additional context from a linked article or page.",
-  mode: "passive",
-  parameters: z.object({
-    url: z.string().url().describe("The URL of the web page to fetch"),
-  }),
-
-  async gather(
-    params: FetchWebPageParams,
-    options?: ContextSourceGatherOptions,
-  ) {
-    const content = await fetchAndExtract(params.url, {
-      signal: options?.signal,
-    });
-
-    if (content == null) {
-      return {
-        content: `Failed to fetch or extract content from: ${params.url}`,
-        metadata: { url: params.url, success: false },
-      };
-    }
-
-    const formatted = formatContent(content, params.url);
-    return {
-      content: formatted,
-      metadata: {
-        url: params.url,
-        title: content.title,
-        success: true,
-      },
-    };
-  },
-};
+export const fetchWebPage: FetchWebPageSource = createFetchWebPageFactory();
 
 /**
  * Options for creating a fetchLinkedPages context source.
@@ -257,6 +314,30 @@ export interface FetchLinkedPagesOptions {
    * @default 10000
    */
   readonly timeout?: number;
+
+  /**
+   * Maximum number of characters to keep from each fetched page's extracted
+   * body before formatting it for context.
+   *
+   * @since 0.2.0
+   */
+  readonly maxCharsPerPage?: number;
+
+  /**
+   * Maximum number of characters to return from the combined formatted
+   * context across all fetched pages.
+   *
+   * @since 0.2.0
+   */
+  readonly maxTotalChars?: number;
+
+  /**
+   * Optional summarization settings.  When provided, each extracted page body
+   * is summarized before formatting it for context.
+   *
+   * @since 0.2.0
+   */
+  readonly summarize?: WebPageSummaryOptions | false;
 }
 
 /**
@@ -276,6 +357,8 @@ export interface FetchLinkedPagesOptions {
  *
  * @param options Options for the context source.
  * @returns A required context source.
+ * @throws {RangeError} If a numeric option is not a positive integer.
+ * @throws {TypeError} If summarization options are invalid.
  *
  * @example
  * ```typescript
@@ -295,6 +378,7 @@ export interface FetchLinkedPagesOptions {
 export function fetchLinkedPages(
   options: FetchLinkedPagesOptions,
 ): RequiredContextSource {
+  validateContextOptions(options);
   const maxLinks = options.maxLinks ?? 10;
   const timeout = options.timeout ?? 10000;
   const links = extractLinks(options.text, options.mediaType);
@@ -350,9 +434,17 @@ export function fetchLinkedPages(
         { count: results.length, total: linksToFetch.length },
       );
 
-      const formatted = results
-        .map(({ url, content }) => formatContent(content, url))
-        .join("\n\n---\n\n");
+      gatherOptions?.signal?.throwIfAborted();
+      const formattedPages = await Promise.all(
+        results.map(({ url, content }) =>
+          formatContent(content, url, options, gatherOptions?.signal)
+        ),
+      );
+
+      const formatted = limitText(
+        formattedPages.join("\n\n---\n\n"),
+        options.maxTotalChars,
+      );
 
       return {
         content: formatted,
@@ -369,18 +461,232 @@ export function fetchLinkedPages(
 /**
  * Formats extracted content for inclusion in the translation context.
  */
-function formatContent(content: ExtractedContent, url: string): string {
+async function formatContent(
+  content: ExtractedContent,
+  url: string,
+  options: WebPageContextOptions = {},
+  signal?: AbortSignal,
+): Promise<string> {
   const parts: string[] = [];
 
-  parts.push(`# ${content.title}`);
-  parts.push(`Source: ${url}`);
+  parts.push(`# ${neutralizePromptTags(content.title)}`);
+  parts.push(`Source: ${neutralizePromptTags(url)}`);
 
   if (content.byline != null) {
-    parts.push(`Author: ${content.byline}`);
+    parts.push(`Author: ${neutralizePromptTags(content.byline)}`);
   }
 
   parts.push("");
-  parts.push(content.content);
+  const rawBody = content.content;
+  const summarizedOrRawBody =
+    options.summarize === false || options.summarize == null
+      ? rawBody
+      : await summarizeContentWithFallback(
+        content,
+        url,
+        rawBody,
+        options.summarize,
+        signal,
+      );
+  const formattedBody = limitText(
+    neutralizePromptTags(summarizedOrRawBody),
+    options.maxCharsPerPage,
+  );
+  parts.push(formattedBody);
 
   return parts.join("\n");
+}
+
+function createFetchWebPageFactory(): FetchWebPageSource {
+  const defaultSource = createFetchWebPageSource({});
+  const factory =
+    ((options?: FetchWebPageOptions) =>
+      createFetchWebPageSource(options ?? {})) as FetchWebPageSource;
+
+  Object.defineProperties(factory, {
+    name: {
+      value: defaultSource.name,
+      enumerable: true,
+      configurable: true,
+    },
+    description: {
+      value: defaultSource.description,
+      enumerable: true,
+      configurable: true,
+    },
+    mode: { value: defaultSource.mode, enumerable: true, configurable: true },
+    parameters: {
+      value: defaultSource.parameters,
+      enumerable: true,
+      configurable: true,
+    },
+    gather: {
+      value: defaultSource.gather,
+      enumerable: true,
+      configurable: true,
+    },
+  });
+
+  return factory;
+}
+
+function createFetchWebPageSource(
+  options: FetchWebPageOptions,
+): PassiveContextSource<FetchWebPageParams> {
+  validateContextOptions(options);
+
+  return {
+    name: "fetch-web-page",
+    description: "Fetches a web page and extracts its main content. " +
+      "Use this when you need additional context from a linked article or page.",
+    mode: "passive",
+    parameters: z.object({
+      url: z.string().url().describe("The URL of the web page to fetch"),
+    }),
+
+    async gather(
+      params: FetchWebPageParams,
+      gatherOptions?: ContextSourceGatherOptions,
+    ) {
+      const content = await fetchAndExtract(params.url, {
+        signal: gatherOptions?.signal,
+      });
+
+      if (content == null) {
+        return {
+          content: `Failed to fetch or extract content from: ${params.url}`,
+          metadata: { url: params.url, success: false },
+        };
+      }
+
+      const formatted = limitText(
+        await formatContent(
+          content,
+          params.url,
+          options,
+          gatherOptions?.signal,
+        ),
+        options.maxTotalChars,
+      );
+      return {
+        content: formatted,
+        metadata: {
+          url: params.url,
+          title: content.title,
+          success: true,
+        },
+      };
+    },
+  };
+}
+
+function validateContextOptions(
+  options: WebPageContextOptions & {
+    readonly maxLinks?: number;
+    readonly timeout?: number;
+  },
+): void {
+  validateCharacterLimit("maxCharsPerPage", options.maxCharsPerPage);
+  validateCharacterLimit("maxTotalChars", options.maxTotalChars);
+  validateCharacterLimit("maxLinks", options.maxLinks);
+  validateCharacterLimit("timeout", options.timeout);
+  const summarize: unknown = options.summarize;
+  if (summarize !== false && summarize != null) {
+    if (!hasSummarizationModel(summarize)) {
+      throw new TypeError("summarize.model must be provided.");
+    }
+    validateCharacterLimit("summarize.maxChars", summarize.maxChars);
+    validateCharacterLimit("summarize.maxInputChars", summarize.maxInputChars);
+  }
+}
+
+function hasSummarizationModel(value: unknown): value is WebPageSummaryOptions {
+  return typeof value === "object" && value != null && "model" in value &&
+    value.model != null;
+}
+
+function validateCharacterLimit(name: string, value: number | undefined): void {
+  if (value == null) {
+    return;
+  }
+
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new RangeError(`${name} must be a positive integer.`);
+  }
+}
+
+function limitText(text: string, maxChars: number | undefined): string {
+  if (maxChars == null || text.length <= maxChars) {
+    return text;
+  }
+
+  const truncated = text.slice(0, maxChars);
+  return /[\uD800-\uDBFF]$/.test(truncated)
+    ? truncated.slice(0, -1)
+    : truncated;
+}
+
+async function summarizeContentWithFallback(
+  content: ExtractedContent,
+  url: string,
+  body: string,
+  options: WebPageSummaryOptions,
+  signal?: AbortSignal,
+): Promise<string> {
+  try {
+    return await summarizeContent(content, url, body, options, signal);
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
+    }
+
+    logger.warn("Failed to summarize fetched content from: {url}.", {
+      url,
+      error: String(error),
+    });
+    return `${SUMMARY_FALLBACK_NOTICE}\n\n${body}`;
+  }
+}
+
+async function summarizeContent(
+  content: ExtractedContent,
+  url: string,
+  body: string,
+  options: WebPageSummaryOptions,
+  signal?: AbortSignal,
+): Promise<string> {
+  logger.debug("Summarizing fetched content from: {url}.", { url });
+  const neutralizedTitle = neutralizePromptTags(content.title);
+  const neutralizedUrl = neutralizePromptTags(url);
+  const neutralizedBody = limitText(
+    neutralizePromptTags(body),
+    options.maxInputChars ?? DEFAULT_SUMMARY_INPUT_MAX_CHARS,
+  );
+  const lengthInstruction = options.maxChars == null
+    ? ""
+    : ` The summary must be no longer than ${options.maxChars} characters.`;
+
+  const result = await generateText({
+    model: options.model,
+    system:
+      "You summarize web pages for use as translation reference material. " +
+      "Preserve named entities, terminology, facts, and domain context. " +
+      "Do not translate the material unless the page itself is translated.",
+    prompt: `Title: ${neutralizedTitle}
+Source: ${neutralizedUrl}
+
+${neutralizedBody}
+
+Summarize this page for a translator. Output only the summary.${lengthInstruction}`,
+    abortSignal: signal,
+  });
+
+  return limitText(result.text.trim(), options.maxChars);
+}
+
+function neutralizePromptTags(text: string): string {
+  return text.replace(
+    /<\s*\/?\s*[a-z_][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<!\s*[a-z_][\s\S]*?>|<\?[\s\S]*?\?>/gi,
+    (tag) => tag.replaceAll("<", "‹").replaceAll(">", "›"),
+  );
 }

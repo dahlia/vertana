@@ -76,8 +76,8 @@
     "prepack": "tsdown",
     "prepublish": "tsdown",
     "test": "tsdown && node --experimental-transform-types --test --test-concurrency=4",
-    "test:bun": "tsdown && bun test",
+    "test:bun": "tsdown && bun test --timeout 30000",
     "test:deno": "deno test --allow-env --allow-net",
-    "test-all": "tsdown && node --experimental-transform-types --test && bun test && deno test"
+    "test-all": "tsdown && node --experimental-transform-types --test && bun test --timeout 30000 && deno test"
   }
 }

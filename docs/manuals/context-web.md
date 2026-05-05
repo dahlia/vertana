@@ -98,6 +98,31 @@ const result = await translate(model, "ko", text, {
 
 When the LLM encounters a reference it wants to understand better, it can
 call the `fetch-web-page` tool with the URL to retrieve the page content.
+If the fetched page may be large, configure the passive source with caps or
+summarization:
+
+~~~~ typescript twoslash
+import type { LanguageModel } from "ai";
+declare const model: LanguageModel;
+declare const summarizerModel: LanguageModel;
+// ---cut-before---
+import { translate } from "@vertana/facade";
+import { fetchWebPage } from "@vertana/context-web";
+
+const text = `
+This article discusses the concept explained at https://example.com/guide.
+`;
+
+const result = await translate(model, "ko", text, {
+  contextSources: [
+    fetchWebPage({
+      maxCharsPerPage: 2000,
+      maxTotalChars: 2500,
+      summarize: { model: summarizerModel, maxChars: 800 },
+    }),
+  ],
+});
+~~~~
 
 
 `fetchLinkedPages`
@@ -134,6 +159,8 @@ const result = await translate(model, "ko", text, {
     fetchLinkedPages({
       text,
       mediaType: "text/plain",
+      maxCharsPerPage: 2000,
+      maxTotalChars: 6000,
     }),
   ],
 });
@@ -153,6 +180,43 @@ const result = await translate(model, "ko", text, {
 
 `timeout`
 :   Timeout for each fetch request in milliseconds.  Defaults to `10000`.
+
+`maxCharsPerPage`
+:   Maximum number of characters to keep from each fetched page body before
+    formatting it as context.
+
+`maxTotalChars`
+:   Maximum number of characters to keep from the combined formatted context
+    across all fetched pages.
+
+`summarize`
+:   Summarization settings for each fetched page.  Pass
+    `{ model: summarizerModel, maxChars?: number }`; bare `true` is not
+    supported because the helper cannot infer which model to use.
+
+~~~~ typescript twoslash
+import type { LanguageModel } from "ai";
+declare const model: LanguageModel;
+declare const summarizerModel: LanguageModel;
+// ---cut-before---
+import { translate } from "@vertana/facade";
+import { fetchLinkedPages } from "@vertana/context-web";
+
+const text = `
+Check out https://example.com/article for background.
+Also see https://example.com/reference for more details.
+`;
+
+const result = await translate(model, "ko", text, {
+  contextSources: [
+    fetchLinkedPages({
+      text,
+      mediaType: "text/plain",
+      summarize: { model: summarizerModel, maxChars: 800 },
+    }),
+  ],
+});
+~~~~
 
 
 `searchWeb`

@@ -112,6 +112,30 @@ const result = await translate(openai("gpt-4o"), "ko", text, {
 });
 ~~~~
 
+Use character budgets to keep fetched reference material smaller than the
+source text:
+
+~~~~ typescript
+fetchLinkedPages({
+  text,
+  mediaType: "text/plain",
+  maxCharsPerPage: 2000,
+  maxTotalChars: 6000,
+});
+~~~~
+
+For longer pages, you can summarize each fetched page with an explicit model:
+
+~~~~ typescript
+const summarizerModel = openai("gpt-4o");
+
+fetchLinkedPages({
+  text,
+  mediaType: "text/plain",
+  summarize: { model: summarizerModel, maxChars: 800 },
+});
+~~~~
+
 > [!WARNING]
 > Pulling many large pages into *required* context can confuse the
 > translator: when the combined reference material is much larger than the
