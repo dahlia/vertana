@@ -659,7 +659,7 @@ Summarize this page for a translator. Output only the summary.${lengthInstructio
 
 function neutralizePromptTags(text: string): string {
   return text.replace(
-    /<\s*\/?\s*[a-z][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<![a-z][\s\S]*?>/gi,
+    /<\s*\/?\s*[a-z_][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<!\s*[a-z_][\s\S]*?>/gi,
     (tag) => tag.replaceAll("<", "‹").replaceAll(">", "›"),
   );
 }
