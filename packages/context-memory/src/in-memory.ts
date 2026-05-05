@@ -29,6 +29,8 @@ interface PreparedText {
  * This backend is intended for tests, examples, and small local memories.
  * It clones entries when storing and returning them, so entry metadata must be
  * structured-cloneable.
+ * Searches scan stored entries linearly, so larger or shared memories should
+ * use a store with an index, database query, or vector search backend.
  * Persistent or vector-based stores can implement {@link TranslationMemoryStore}
  * with the same entry and hit shapes.
  *

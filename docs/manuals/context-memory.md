@@ -272,14 +272,13 @@ class PrefixMemoryStore implements TranslationMemoryStore {
     entries: readonly TranslationMemoryEntry[],
     options?: TranslationMemoryOperationOptions,
   ): Promise<void> {
-    options?.signal?.throwIfAborted();
-    const validated = entries.map(cloneValidEntry);
-
-    for (const entry of validated) {
+    const validated: TranslationMemoryEntry[] = [];
+    for (const entry of entries) {
       options?.signal?.throwIfAborted();
-      this.entries.push(entry);
+      validated.push(cloneValidEntry(entry));
     }
 
+    this.entries.push(...validated);
     return Promise.resolve();
   }
 
@@ -322,7 +321,9 @@ function cloneValidEntry(
   }
   return {
     ...entry,
-    metadata: entry.metadata == null ? undefined : { ...entry.metadata },
+    metadata: entry.metadata == null
+      ? undefined
+      : structuredClone(entry.metadata),
   };
 }
 
