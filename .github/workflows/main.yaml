@@ -21,8 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v4
-    - uses: jdx/mise-action@v2
+    - uses: actions/checkout@v6
+    - uses: jdx/mise-action@v4
       with:
         version: 2025.12.12
     - run: mise run install
@@ -32,8 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v4
-    - uses: jdx/mise-action@v2
+    - uses: actions/checkout@v6
+    - uses: jdx/mise-action@v4
       with:
         version: 2025.12.12
     - run: mise run install
@@ -49,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v4
-    - uses: jdx/mise-action@v2
+    - uses: actions/checkout@v6
+    - uses: jdx/mise-action@v4
       with:
         version: 2025.12.12
     - run: mise run install
@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v4
-    - uses: jdx/mise-action@v2
+    - uses: actions/checkout@v6
+    - uses: jdx/mise-action@v4
       with:
         version: 2025.12.12
     - run: mise run install
@@ -87,8 +87,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-    - uses: actions/checkout@v4
-    - uses: jdx/mise-action@v2
+    - uses: actions/checkout@v6
+    - uses: jdx/mise-action@v4
       with:
         version: 2025.12.12
     - run: mise run install
@@ -138,8 +138,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - uses: actions/checkout@v4
-    - uses: jdx/mise-action@v2
+    - uses: actions/checkout@v6
+    - uses: jdx/mise-action@v4
       with:
         version: 2025.12.12
     - run: mise run install
@@ -163,12 +163,12 @@ jobs:
         UNSTABLE_DOCS_URL: ${{ vars.UNSTABLE_DOCS_URL }}
         PLAUSIBLE_DOMAIN: ${{ vars.PLAUSIBLE_DOMAIN }}
       working-directory: docs
-    - uses: actions/upload-pages-artifact@v3
+    - uses: actions/upload-pages-artifact@v5
       with:
         path: docs/.vitepress/dist
     - id: deployment
       if: github.ref_type == 'tag'
-      uses: actions/deploy-pages@v4
+      uses: actions/deploy-pages@v5
     - if: github.ref_type == 'branch'
       uses: cloudflare/wrangler-action@v3
       with:
