@@ -118,6 +118,9 @@ export class InMemoryTranslationMemoryStore implements TranslationMemoryStore {
       const maxHits = validateMaxHits(options.maxHits);
       const minScore = validateMinScore(options.minScore);
       const normalizedQuery = normalizeText(query);
+      if (normalizedQuery.length === 0) {
+        throw new TypeError("query must not be empty.");
+      }
       const hits: Array<TranslationMemoryHit & { readonly index: number }> = [];
 
       for (const stored of this.entries) {

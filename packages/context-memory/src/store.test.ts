@@ -185,6 +185,10 @@ describe("InMemoryTranslationMemoryStore", () => {
       TypeError,
     );
     await assert.rejects(
+      () => store.search("  ", { minScore: 0 }),
+      TypeError,
+    );
+    await assert.rejects(
       () => store.search("query", { maxHits: 0 }),
       RangeError,
     );
