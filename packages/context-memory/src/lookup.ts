@@ -197,7 +197,10 @@ export function lookupMemory(
       const minScore = validateMinScore(params.minScore ?? defaultMinScore);
       if (query.length === 0) {
         return {
-          content: "No translation memory matches found for an empty query.",
+          content: limitText(
+            "No translation memory matches found for an empty query.",
+            maxContentChars,
+          ),
           metadata: {
             query,
             hitCount: 0,

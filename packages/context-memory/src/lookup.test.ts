@@ -190,6 +190,17 @@ describe("lookupMemory", () => {
     });
   });
 
+  it("limits whitespace-only query output", async () => {
+    const store = new InMemoryTranslationMemoryStore();
+    const source = lookupMemory(store, { maxContentChars: 16 });
+
+    const result = await source.gather({ query: "   " });
+
+    assert.ok(result.content.length <= 16);
+    assert.ok(result.content.endsWith("..."));
+    assert.equal(result.metadata?.hitCount, 0);
+  });
+
   it("limits formatted output without leaving dangling surrogates", async () => {
     const store = new InMemoryTranslationMemoryStore([
       {
