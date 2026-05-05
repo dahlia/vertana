@@ -345,7 +345,7 @@ export interface FetchLinkedPagesOptions {
  *
  * @param options Options for the context source.
  * @returns A required context source.
- * @throws {RangeError} If a character limit is not a positive integer.
+ * @throws {RangeError} If a numeric option is not a positive integer.
  * @throws {TypeError} If summarization options are invalid.
  *
  * @example
@@ -564,9 +564,16 @@ function createFetchWebPageSource(
   };
 }
 
-function validateContextOptions(options: WebPageContextOptions): void {
+function validateContextOptions(
+  options: WebPageContextOptions & {
+    readonly maxLinks?: number;
+    readonly timeout?: number;
+  },
+): void {
   validateCharacterLimit("maxCharsPerPage", options.maxCharsPerPage);
   validateCharacterLimit("maxTotalChars", options.maxTotalChars);
+  validateCharacterLimit("maxLinks", options.maxLinks);
+  validateCharacterLimit("timeout", options.timeout);
   const summarize: unknown = options.summarize;
   if (summarize !== false && summarize != null) {
     if (!hasSummarizationModel(summarize)) {
@@ -659,7 +666,7 @@ Summarize this page for a translator. Output only the summary.${lengthInstructio
 
 function neutralizePromptTags(text: string): string {
   return text.replace(
-    /<\s*\/?\s*[a-z_][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<!\s*[a-z_][\s\S]*?>/gi,
+    /<\s*\/?\s*[a-z_][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>|<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<!\s*[a-z_][\s\S]*?>|<\?[\s\S]*?\?>/gi,
     (tag) => tag.replaceAll("<", "‹").replaceAll(">", "›"),
   );
 }
