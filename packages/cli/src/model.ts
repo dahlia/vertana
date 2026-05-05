@@ -80,9 +80,11 @@ export function parseModelCode(code: string): ParsedModelCode {
  *
  * @returns A ValueParser for model codes.
  */
-export function modelCode(): ValueParser<ParsedModelCode> {
+export function modelCode(): ValueParser<"sync", ParsedModelCode> {
   return {
+    mode: "sync",
     metavar: "PROVIDER:MODEL",
+    placeholder: { provider: "openai", modelId: "model" },
     parse(input: string): ValueParserResult<ParsedModelCode> {
       const colonIndex = input.indexOf(":");
       if (colonIndex === -1) {

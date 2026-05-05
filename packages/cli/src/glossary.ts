@@ -17,9 +17,11 @@ export type { Glossary, GlossaryEntry };
  * // result.value === { original: "LLM", translated: "Large Language Model" }
  * ```
  */
-export function glossaryEntry(): ValueParser<GlossaryEntry> {
+export function glossaryEntry(): ValueParser<"sync", GlossaryEntry> {
   return {
+    mode: "sync",
     metavar: "TERM=TRANSLATION",
+    placeholder: { original: "TERM", translated: "TRANSLATION" },
 
     parse(input: string): ValueParserResult<GlossaryEntry> {
       const index = input.indexOf("=");
