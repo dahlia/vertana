@@ -177,6 +177,20 @@ describe("lookupMemory", () => {
     assert.equal(result.metadata?.hitCount, 1);
   });
 
+  it("limits no-match output without leaving dangling surrogates", async () => {
+    const store = new InMemoryTranslationMemoryStore();
+    const source = lookupMemory(store, { maxContentChars: 80 });
+
+    const result = await source.gather({
+      query: "Print document " + "😀".repeat(50),
+    });
+
+    assert.ok(result.content.length <= 80);
+    assert.ok(result.content.endsWith("..."));
+    assert.ok(!/[\uD800-\uDBFF]$/.test(result.content));
+    assert.equal(result.metadata?.hitCount, 0);
+  });
+
   it("neutralizes prompt-shaped tags in formatted output", async () => {
     const store = new InMemoryTranslationMemoryStore([
       {

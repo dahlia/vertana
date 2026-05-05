@@ -219,8 +219,11 @@ export function lookupMemory(
 
       if (hits.length === 0) {
         return {
-          content: "No translation memory matches found for: " +
-            neutralizePromptTags(query),
+          content: limitText(
+            "No translation memory matches found for: " +
+              neutralizePromptTags(query),
+            maxContentChars,
+          ),
           metadata: {
             query,
             hitCount: 0,
