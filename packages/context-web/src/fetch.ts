@@ -11,6 +11,9 @@ import { z } from "zod";
 import { extractLinks, type MediaType } from "./extract-links.ts";
 
 const logger = getLogger(["vertana", "context-web", "fetch"]);
+const DEFAULT_SUMMARY_INPUT_MAX_CHARS = 200_000;
+const SUMMARY_FALLBACK_NOTICE =
+  "Summarization failed; using extracted page text instead.";
 
 /**
  * Result of extracting content from a web page.
@@ -217,6 +220,15 @@ export interface WebPageSummaryOptions {
    * Maximum number of characters to keep from the generated summary.
    */
   readonly maxChars?: number;
+
+  /**
+   * Maximum number of characters from the extracted page body to send to the
+   * summarizer model.
+   *
+   * @default 200000
+   * @since 0.2.0
+   */
+  readonly maxInputChars?: number;
 }
 
 /**
@@ -580,6 +592,7 @@ function validateContextOptions(
       throw new TypeError("summarize.model must be provided.");
     }
     validateCharacterLimit("summarize.maxChars", summarize.maxChars);
+    validateCharacterLimit("summarize.maxInputChars", summarize.maxInputChars);
   }
 }
 
@@ -627,7 +640,7 @@ async function summarizeContentWithFallback(
       url,
       error: String(error),
     });
-    return body;
+    return `${SUMMARY_FALLBACK_NOTICE}\n\n${body}`;
   }
 }
 
@@ -641,7 +654,10 @@ async function summarizeContent(
   logger.debug("Summarizing fetched content from: {url}.", { url });
   const neutralizedTitle = neutralizePromptTags(content.title);
   const neutralizedUrl = neutralizePromptTags(url);
-  const neutralizedBody = neutralizePromptTags(body);
+  const neutralizedBody = limitText(
+    neutralizePromptTags(body),
+    options.maxInputChars ?? DEFAULT_SUMMARY_INPUT_MAX_CHARS,
+  );
   const lengthInstruction = options.maxChars == null
     ? ""
     : ` The summary must be no longer than ${options.maxChars} characters.`;

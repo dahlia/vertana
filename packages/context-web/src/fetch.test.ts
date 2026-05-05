@@ -236,7 +236,46 @@ describe("fetchWebPage", () => {
       });
 
       assert.ok(result.content.includes("# Fallback summary"));
+      assert.ok(
+        result.content.includes(
+          "Summarization failed; using extracted page text instead.",
+        ),
+      );
       assert.ok(result.content.includes("TAIL_SENTINEL"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("should cap summarization input before prompting", async () => {
+    const originalFetch = globalThis.fetch;
+    const body = [
+      "Important opening context.",
+      "Filler content. ".repeat(10),
+      "POST_INPUT_CAP_SENTINEL",
+      "Additional context. ".repeat(30),
+    ].join(" ");
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Capped summary input", body), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const model = createSummaryModel("Input capped summary.");
+      const summarize = { model, maxInputChars: 80 };
+      const source = fetchWebPage({ summarize });
+
+      await source.gather({
+        url: "https://example.com/capped-summary-input",
+      });
+
+      const prompt = getLastUserPrompt(model);
+      assert.ok(prompt.includes("Important opening context."));
+      assert.ok(!prompt.includes("POST_INPUT_CAP_SENTINEL"));
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -671,6 +710,15 @@ describe("fetchLinkedPages", () => {
         fetchWebPage({
           summarize: { model: createSummaryModel("x"), maxChars: 0 },
         }),
+      RangeError,
+    );
+
+    const summarize = {
+      model: createSummaryModel("x"),
+      maxInputChars: 0,
+    };
+    assert.throws(
+      () => fetchWebPage({ summarize }),
       RangeError,
     );
 
