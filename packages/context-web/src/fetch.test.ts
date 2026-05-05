@@ -84,6 +84,33 @@ describe("fetchWebPage", () => {
     const schema = fetchWebPage.parameters;
     assert.ok(schema != null);
   });
+
+  it("should create a configured passive source with size limits", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Configured page"), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const source = fetchWebPage({ maxCharsPerPage: 80 });
+      assert.equal(source.mode, "passive");
+      assert.equal(source.name, "fetch-web-page");
+
+      const result = await source.gather({
+        url: "https://example.com/configured",
+      });
+
+      assert.ok(result.content.includes("# Configured page"));
+      assert.ok(!result.content.includes("TAIL_SENTINEL"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe("fetchLinkedPages", () => {
@@ -114,4 +141,98 @@ describe("fetchLinkedPages", () => {
     assert.equal(source.mode, "required");
     // The actual limiting is tested during gather()
   });
+
+  it("should truncate each fetched page body", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => {
+      return Promise.resolve(
+        new Response(createArticleHtml("Per-page cap"), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const source = fetchLinkedPages({
+        text: "Read https://example.com/per-page for background.",
+        mediaType: "text/plain",
+        maxCharsPerPage: 80,
+      });
+
+      const result = await source.gather();
+
+      assert.ok(result.content.includes("# Per-page cap"));
+      assert.ok(
+        result.content.includes("Source: https://example.com/per-page"),
+      );
+      assert.ok(!result.content.includes("TAIL_SENTINEL"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("should cap the combined linked page output", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (input) => {
+      const url = String(input);
+      const title = url.endsWith("/1") ? "First page" : "Second page";
+      return Promise.resolve(
+        new Response(createArticleHtml(title), {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    };
+
+    try {
+      const source = fetchLinkedPages({
+        text: "See https://example.com/1 and https://example.com/2.",
+        mediaType: "text/plain",
+        maxTotalChars: 160,
+      });
+
+      const result = await source.gather();
+
+      assert.ok(result.content.length <= 160);
+      assert.ok(result.content.includes("# First page"));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("should reject invalid size limits", () => {
+    assert.throws(
+      () =>
+        fetchLinkedPages({
+          text: "https://example.com",
+          mediaType: "text/plain",
+          maxCharsPerPage: 0,
+        }),
+      RangeError,
+    );
+
+    assert.throws(
+      () => fetchWebPage({ maxTotalChars: -1 }),
+      RangeError,
+    );
+  });
 });
+
+function createArticleHtml(title: string): string {
+  const paragraph = "This paragraph provides enough article content for " +
+    "Readability to extract it reliably across runtimes. ";
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head><title>${title}</title></head>
+      <body>
+        <article>
+          <h1>${title}</h1>
+          <p>${paragraph.repeat(8)}</p>
+          <p>TAIL_SENTINEL ${paragraph.repeat(8)}</p>
+        </article>
+      </body>
+    </html>
+  `;
+}

@@ -12,6 +12,10 @@ export {
   fetchLinkedPages,
   type FetchLinkedPagesOptions,
   fetchWebPage,
+  type FetchWebPageOptions,
+  type FetchWebPageParams,
+  type FetchWebPageSource,
+  type WebPageContextOptions,
 } from "./fetch.ts";
 
 export { extractLinks, type MediaType } from "./extract-links.ts";
