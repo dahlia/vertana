@@ -420,13 +420,12 @@ export function fetchLinkedPages(
         { count: results.length, total: linksToFetch.length },
       );
 
-      const formattedPages: string[] = [];
-      for (const { url, content } of results) {
-        gatherOptions?.signal?.throwIfAborted();
-        formattedPages.push(
-          await formatContent(content, url, options, gatherOptions?.signal),
-        );
-      }
+      gatherOptions?.signal?.throwIfAborted();
+      const formattedPages = await Promise.all(
+        results.map(({ url, content }) =>
+          formatContent(content, url, options, gatherOptions?.signal)
+        ),
+      );
 
       const formatted = limitText(
         formattedPages.join("\n\n---\n\n"),
@@ -467,7 +466,13 @@ async function formatContent(
   const body = limitText(content.content, options.maxCharsPerPage);
   const contextBody = options.summarize === false || options.summarize == null
     ? body
-    : await summarizeContent(content, url, body, options.summarize, signal);
+    : await summarizeContentWithFallback(
+      content,
+      url,
+      body,
+      options.summarize,
+      signal,
+    );
   parts.push(contextBody);
 
   return parts.join("\n");
@@ -575,7 +580,32 @@ function limitText(text: string, maxChars: number | undefined): string {
     return text;
   }
 
-  return text.slice(0, maxChars);
+  const truncated = text.slice(0, maxChars);
+  return /[\uD800-\uDBFF]$/.test(truncated)
+    ? truncated.slice(0, -1)
+    : truncated;
+}
+
+async function summarizeContentWithFallback(
+  content: ExtractedContent,
+  url: string,
+  body: string,
+  options: WebPageSummaryOptions,
+  signal?: AbortSignal,
+): Promise<string> {
+  try {
+    return await summarizeContent(content, url, body, options, signal);
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
+    }
+
+    logger.warn("Failed to summarize fetched content from: {url}", {
+      url,
+      error: String(error),
+    });
+    return body;
+  }
 }
 
 async function summarizeContent(
@@ -586,6 +616,7 @@ async function summarizeContent(
   signal?: AbortSignal,
 ): Promise<string> {
   logger.debug("Summarizing fetched content from: {url}", { url });
+  const neutralizedBody = neutralizePromptTags(body);
 
   const result = await generateText({
     model: options.model,
@@ -596,11 +627,18 @@ async function summarizeContent(
     prompt: `Title: ${content.title}
 Source: ${url}
 
-${body}
+${neutralizedBody}
 
 Summarize this page for a translator. Output only the summary.`,
     abortSignal: signal,
   });
 
   return limitText(result.text.trim(), options.maxChars);
+}
+
+function neutralizePromptTags(text: string): string {
+  return text.replace(
+    /<\s*\/?\s*[a-z][a-z0-9_:-]*(?:\s+[a-z0-9_:-]+(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?)*\s*\/?>/gi,
+    (tag) => tag.replaceAll("<", "‹").replaceAll(">", "›"),
+  );
 }

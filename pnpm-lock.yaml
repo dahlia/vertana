@@ -195,6 +195,9 @@ importers:
       '@vertana/core':
         specifier: 'workspace:'
         version: link:../core
+      ai:
+        specifier: 'catalog:'
+        version: 6.0.3(zod@4.2.1)
       htmlparser2:
         specifier: 'catalog:'
         version: 10.0.0
@@ -208,9 +211,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.27
-      ai:
-        specifier: 'catalog:'
-        version: 6.0.3(zod@4.2.1)
       tsdown:
         specifier: 'catalog:'
         version: 0.18.3(typescript@5.9.3)

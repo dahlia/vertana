@@ -72,6 +72,7 @@
     "@logtape/logtape": "catalog:",
     "@mozilla/readability": "catalog:",
     "@vertana/core": "workspace:",
+    "ai": "catalog:",
     "htmlparser2": "catalog:",
     "linkedom": "catalog:",
     "zod": "catalog:"
